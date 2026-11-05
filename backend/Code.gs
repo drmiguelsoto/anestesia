@@ -418,13 +418,25 @@ function equivalencias_() {
 
 function ahora_() { return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss'); }
 
+var LOCK_TOMADO = false;
 function folio_(prefijo) {
-  var lock = LockService.getScriptLock(); lock.waitLock(20000);
+  var propio = !LOCK_TOMADO;
+  var lock = LockService.getScriptLock();
+  if (propio) lock.waitLock(20000);
   try {
     var n = Number(PROP.getProperty('FOLIO_' + prefijo) || 0) + 1;
     PROP.setProperty('FOLIO_' + prefijo, String(n));
     return prefijo + '-' + ('00000' + n).slice(-5);
-  } finally { lock.releaseLock(); }
+  } finally { if (propio) lock.releaseLock(); }
+}
+
+/** Escribe varias filas de un jalón (mucho más rápido que appendRow una por una). */
+function anexarVarios_(nombre, objs) {
+  if (!objs.length) return;
+  var h = hoja_(nombre);
+  var enc = h.getRange(1, 1, 1, h.getLastColumn()).getValues()[0];
+  var filas = objs.map(function (o) { return enc.map(function (c) { return o[c] === undefined ? '' : o[c]; }); });
+  h.getRange(h.getLastRow() + 1, 1, filas.length, enc.length).setValues(filas);
 }
 
 function bitacora_(usuario, accion, objeto, detalle) {
@@ -456,14 +468,16 @@ function bootstrap() {
     actualizar_('Config', fila._fila, { Valor: carpeta.getId() });
   }
   var existentes = leer_('Tabulador').map(function (r) { return r.Concepto_ID; });
-  TABULADOR_SEMILLA.forEach(function (t) {
-    if (existentes.indexOf(t[0]) < 0) anexar_('Tabulador', { Concepto_ID: t[0], Categoria: t[1], Concepto: t[2], Nombre_Hoja_Costos: t[3], Tipo: t[4], Monto_Respaldo: t[5], Activo: 'Sí' });
-  });
+  anexarVarios_('Tabulador', TABULADOR_SEMILLA.filter(function (t) { return existentes.indexOf(t[0]) < 0; }).map(function (t) {
+    return { Concepto_ID: t[0], Categoria: t[1], Concepto: t[2], Nombre_Hoja_Costos: t[3], Tipo: t[4], Monto_Respaldo: t[5], Activo: 'Sí' };
+  }));
   var claves = equivalencias_().map(function (e) { return e.clave; });
+  var eqs = [];
   EQUIVALENCIAS_SEMILLA.forEach(function (e) {
     var k = norm(e[0]);
-    if (claves.indexOf(k) < 0) { anexar_('Equivalencias', { Nombre_Agenda: e[0], Clave_Normal: k, Concepto_ID: e[1], Notas: e[2], Veces_Visto: 0 }); claves.push(k); }
+    if (claves.indexOf(k) < 0) { eqs.push({ Nombre_Agenda: e[0], Clave_Normal: k, Concepto_ID: e[1], Notas: e[2], Veces_Visto: 0 }); claves.push(k); }
   });
+  anexarVarios_('Equivalencias', eqs);
   if (!leer_('Usuarios').length) {
     anexar_('Usuarios', { Email: Session.getEffectiveUser().getEmail(), Nombre: 'Dr. Miguel Soto', Rol: 'admin', Activo: 'Sí' });
   }
@@ -471,7 +485,9 @@ function bootstrap() {
   TAB_CACHE = null;
   var tab = tabulador_();
   var faltan = Object.keys(tab).filter(function (k) { return !tab[k].deHoja && !(tab[k].monto > 0) && tab[k].tipo !== 'No_cuenta'; });
-  return 'Listo: ' + ss.getUrl() + (faltan.length ? ' · SIN MONTO EN LA HOJA: ' + faltan.join(', ') : ' · tabulador completo');
+  var msg = 'Listo: ' + ss.getUrl() + (faltan.length ? ' · SIN MONTO EN LA HOJA: ' + faltan.join(', ') : ' · tabulador completo');
+  Logger.log(msg);
+  return msg;
 }
 
 function instalarDisparador() {
@@ -547,6 +563,7 @@ function planearSincronizacion(eventos, eqs, cfg, anest, ahora) {
 
 function sincronizar() {
   var lock = LockService.getScriptLock(); lock.waitLock(60000);
+  LOCK_TOMADO = true;
   try {
     var cfg = config_(), tab = tabulador_(), eqs = equivalencias_();
     var anest = leer_('Anestesiologos');
@@ -556,24 +573,29 @@ function sincronizar() {
     var lineasTodas = leer_('Lineas');
     var nuevos = 0, actualizados = 0;
     var vistos = {};
+    var casosNuevos = [], lineasNuevas = [];
     plan.forEach(function (c) {
       c.lineas.forEach(function (l) { var k = norm(l.texto); vistos[k] = (vistos[k] || 0) + 1; });
       var ex = existentes[c.eventoId];
       if (!ex) {
         if (c.estado === 'Excluido' && /Cancelada|No asisti/.test(c.motivo)) return; // no ensuciar con canceladas nuevas
         var id = folio_('ANE');
+        var vpaCobra = c.vpaAgenda === 'Sí';
         c.lineas.forEach(function (l) {
-          anexar_('Lineas', { Linea_ID: folio_('LIN'), Caso_ID: id, Origen: 'Agenda', Texto: l.texto, Concepto_ID: l.concepto, Activa: 'Sí', Agregado_Por: 'agenda', Agregado_En: ahora_() });
+          lineasNuevas.push({ Linea_ID: folio_('LIN'), Caso_ID: id, Origen: 'Agenda', Texto: l.texto, Concepto_ID: l.concepto, Activa: 'Sí', Agregado_Por: 'agenda', Agregado_En: ahora_() });
         });
-        anexar_('Casos', {
+        var r = calcular(c.lineas.map(function (l) { return { concepto: l.concepto, activa: true }; }), tab, { externos: 0, vpa: vpaCobra, reintervencion: false });
+        casosNuevos.push({
           Caso_ID: id, Evento_ID: c.eventoId, VPA_Evento_ID: c.vpaEventoId,
           Fecha_Cirugia: Utilities.formatDate(c.fecha, TZ, 'yyyy-MM-dd HH:mm'), Paciente: c.paciente, COT: c.cot,
           Sede: c.sede, Tipo_Anestesia: c.anestesia, Texto_Agenda: c.texto, Origen: c.origen,
           Anestesiologo_Email: c.anestesiologo, Estado: c.estado, VPA_Agenda: c.vpaAgenda,
-          VPA_Cobra: c.vpaAgenda === 'Sí' ? 'Sí' : 'No', Medicos_Externos: 0, Reintervencion: 'No',
+          VPA_Cobra: vpaCobra ? 'Sí' : 'No', Medicos_Externos: 0, Reintervencion: 'No',
+          Base_Concepto: r.baseConcepto, Base_Monto: r.baseMonto, Adicionales_N: r.adicionalesN,
+          Adicionales_Monto: r.adicionalesMonto, Externos_Monto: r.externosMonto, VPA_Monto: r.vpaMonto,
+          Total: r.total, Sin_Mapear: r.sinMapear,
           Motivo: c.motivo, Creado_En: ahora_(), Actualizado_En: ahora_()
         });
-        recalcular_(id, tab);
         nuevos++;
       } else if (['Programado', 'Por_confirmar'].indexOf(ex.Estado) >= 0) {
         var cambios = { VPA_Agenda: c.vpaAgenda, VPA_Evento_ID: c.vpaEventoId, Actualizado_En: ahora_() };
@@ -592,31 +614,40 @@ function sincronizar() {
             cambios.Texto_Agenda = c.texto;
           }
         }
-        actualizar_('Casos', ex._fila, cambios);
-        recalcular_(ex.Caso_ID, tab);
-        actualizados++;
+        var relevante = Object.keys(cambios).some(function (k) { return k !== 'Actualizado_En' && String(cambios[k]) !== String(ex[k]); });
+        if (relevante) {
+          actualizar_('Casos', ex._fila, cambios);
+          recalcular_(ex.Caso_ID, tab);
+          actualizados++;
+        }
       }
     });
+    anexarVarios_('Lineas', lineasNuevas);
+    anexarVarios_('Casos', casosNuevos);
     // Contador de uso de cada nombre y alta de nombres nuevos sin mapear en Equivalencias.
     var claves = {};
     eqs.forEach(function (e) { claves[e.clave] = e; });
     Object.keys(vistos).forEach(function (k) {
       if (!k) return;
-      if (claves[k]) actualizar_('Equivalencias', claves[k]._fila, { Veces_Visto: vistos[k], Ultima_Vez: ahora_() });
+      if (claves[k] && claves[k]._fila && Number(claves[k].veces) !== vistos[k]) actualizar_('Equivalencias', claves[k]._fila, { Veces_Visto: vistos[k], Ultima_Vez: ahora_() });
     });
+    var eqNuevas = [];
     plan.forEach(function (c) {
       if (c.origen !== 'Agenda') return;
       c.lineas.forEach(function (l) {
         var k = norm(l.texto);
         if (!l.concepto && k && !claves[k]) {
-          anexar_('Equivalencias', { Nombre_Agenda: l.texto, Clave_Normal: k, Concepto_ID: '', Notas: 'nuevo: sin mapear', Veces_Visto: vistos[k], Ultima_Vez: ahora_() });
+          eqNuevas.push({ Nombre_Agenda: l.texto, Clave_Normal: k, Concepto_ID: '', Notas: 'nuevo: sin mapear', Veces_Visto: vistos[k], Ultima_Vez: ahora_() });
           claves[k] = { clave: k };
         }
       });
     });
+    anexarVarios_('Equivalencias', eqNuevas);
     PROP.setProperty('ULTIMA_SINC', ahora_());
-    return { nuevos: nuevos, actualizados: actualizados, total: plan.length };
-  } finally { lock.releaseLock(); }
+    var res = { nuevos: nuevos, actualizados: actualizados, total: plan.length };
+    Logger.log(JSON.stringify(res));
+    return res;
+  } finally { LOCK_TOMADO = false; lock.releaseLock(); }
 }
 
 /* ===================== Cálculo y estado de un caso ===================== */

@@ -3,110 +3,191 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Honorarios de Anestesia · Dr. Miguel Soto</title>
+<title>Honorarios de Anestesia — Dr. Miguel Soto</title>
+<link rel="icon" href="logo_ms_black.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-:root{--negro:#030707;--taupe:#A19487;--crema:#F4F2F1;--linea:#E2DCD6;--tinta:#2A2C2C;--gris:#6F6A66;--ok:#3E6B4E;--alerta:#9A5B2E;--error:#8E2F2F;--azul:#3C5A73}
-*{box-sizing:border-box}
-html,body{margin:0;background:#fff;color:var(--tinta);font-family:Jost,system-ui,sans-serif;font-size:14px;line-height:1.45}
-h1,h2,h3{font-family:'Cormorant Garamond',serif;font-weight:500;margin:0;color:var(--negro)}
-button{font-family:inherit;font-size:13px;cursor:pointer}
-input,select,textarea{font-family:inherit;font-size:14px}
-.top{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--negro);background:#fff;position:sticky;top:0;z-index:5}
-.brand{display:flex;align-items:center;gap:12px}
-.mono{width:38px;height:38px;border:1px solid var(--negro);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500}
-.word{font-family:'Cormorant Garamond',serif;font-size:17px;letter-spacing:4px;font-weight:500}
-.word small{display:block;font-family:Jost;font-size:9px;letter-spacing:2.5px;color:var(--taupe);text-transform:uppercase}
-.who{font-size:12px;color:var(--gris);text-align:right}
-.who a{color:var(--taupe);cursor:pointer}
-nav{display:flex;gap:4px;padding:0 24px;border-bottom:1px solid var(--linea);overflow-x:auto;background:#fff}
-nav button{background:none;border:0;border-bottom:2px solid transparent;padding:12px 14px;color:var(--gris);letter-spacing:.5px;white-space:nowrap}
-nav button.on{color:var(--negro);border-color:var(--negro);font-weight:500}
-nav .cnt{display:inline-block;min-width:18px;padding:0 5px;margin-left:6px;border-radius:9px;background:var(--crema);font-size:11px;color:var(--negro)}
-main{max-width:1100px;margin:0 auto;padding:24px}
-.eyebrow{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--taupe);margin-bottom:6px}
-.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:18px;flex-wrap:wrap}
-.hero h1{font-size:34px}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
-.chip{border:1px solid var(--linea);background:#fff;padding:5px 12px;border-radius:20px;color:var(--gris);font-size:12px}
-.chip.on{background:var(--negro);color:var(--crema);border-color:var(--negro)}
-.lista{border-top:1px solid var(--linea)}
-.fila{display:grid;grid-template-columns:110px 1fr 150px 110px 120px;gap:12px;align-items:center;padding:12px 6px;border-bottom:1px solid var(--linea);cursor:pointer}
-.fila:hover{background:#FAF8F7}
-.fila .pac{font-weight:500;color:var(--negro)}
-.fila .proc{font-size:12px;color:var(--gris);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fila .monto{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
-.fecha{font-size:12px;color:var(--gris)}
-.estado{display:inline-block;font-size:10.5px;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:3px;background:var(--crema);color:var(--negro);text-align:center}
-.e-Por_confirmar{background:#F3E9DE;color:var(--alerta)}.e-Por_aprobar{background:#E6ECF1;color:var(--azul)}.e-Aprobado{background:#E4EEE7;color:var(--ok)}
-.e-En_cobro{background:#EDE8F2;color:#5B4B73}.e-Pagado{background:var(--negro);color:var(--crema)}.e-Excluido,.e-Rechazado{background:#F0EDEB;color:#9C9590}.e-Programado{background:#fff;border:1px solid var(--linea);color:var(--gris)}
-.vacio{padding:48px 0;text-align:center;color:var(--gris)}
-.btn{background:var(--negro);color:var(--crema);border:1px solid var(--negro);padding:9px 16px;letter-spacing:.6px}
-.btn.sec{background:#fff;color:var(--negro)}
-.btn.peligro{background:#fff;color:var(--error);border-color:var(--error)}
-.btn:disabled{opacity:.4;cursor:not-allowed}
-.panel{border:1px solid var(--linea);padding:18px;margin-bottom:16px;background:#fff}
-.panel.crema{background:var(--crema);border-color:var(--crema)}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
-.kpi{background:var(--crema);padding:16px}
-.kpi .v{font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--negro)}
-.kpi .l{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--taupe)}
-table{width:100%;border-collapse:collapse}
-th{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--taupe);text-align:left;font-weight:500;padding:8px 6px;border-bottom:1px solid var(--negro)}
-td{padding:9px 6px;border-bottom:1px solid var(--linea);vertical-align:middle}
-td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-.tag{font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:var(--crema);color:var(--gris)}
-.tag.ag{background:#E6ECF1;color:var(--azul)}.tag.an{background:#F3E9DE;color:var(--alerta)}.tag.ap{background:#E4EEE7;color:var(--ok)}
-.tachado td{opacity:.4;text-decoration:line-through}
-.sinmap{color:var(--error);font-weight:500}
-.drawer{position:fixed;inset:0;background:rgba(3,7,7,.35);display:none;z-index:20}
-.drawer.on{display:block}
-.drawer .hoja{position:absolute;right:0;top:0;bottom:0;width:min(640px,100%);background:#fff;overflow-y:auto;padding:26px 28px 40px;box-shadow:-10px 0 40px rgba(0,0,0,.12)}
-.cerrar{position:absolute;right:18px;top:14px;background:none;border:0;font-size:26px;color:var(--gris)}
-.meta{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:12.5px;margin:12px 0 18px}
-.meta b{display:block;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--taupe);font-weight:500}
-.ctrl{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--linea)}
-.ctrl small{display:block;color:var(--gris);font-size:11.5px}
-.stepper{display:flex;align-items:center;gap:6px}
-.stepper button{width:28px;height:28px;border:1px solid var(--linea);background:#fff}
-.switch{position:relative;width:40px;height:22px;background:#DDD6D0;border-radius:11px;border:0;flex:none}
-.switch.on{background:var(--negro)}
-.switch::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s}
-.switch.on::after{left:21px}
-.switch:disabled{opacity:.4}
-.desglose{background:var(--crema);padding:14px 16px;margin:16px 0}
-.desglose div{display:flex;justify-content:space-between;padding:3px 0;font-variant-numeric:tabular-nums}
-.desglose .tot{border-top:1px solid var(--negro);margin-top:6px;padding-top:8px;font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--negro)}
-.acciones{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
-.aviso{padding:10px 12px;font-size:12.5px;margin:10px 0;border-left:3px solid var(--alerta);background:#FBF6F1}
-.aviso.err{border-color:var(--error);background:#FBF2F2;color:var(--error)}
-.aviso.ok{border-color:var(--ok);background:#F2F7F3;color:var(--ok)}
-.campo{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
-.campo label{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--taupe)}
-.campo input,.campo select,.campo textarea{border:1px solid var(--linea);padding:9px 10px;background:#fff}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--negro);color:var(--crema);padding:11px 18px;font-size:13px;z-index:40;display:none;max-width:90%}
-.toast.err{background:var(--error)}
-.login{max-width:420px;margin:12vh auto;text-align:center;padding:0 24px}
-.login h1{font-size:40px;margin:8px 0 10px}
-.login p{color:var(--gris)}
-#gbtn{display:flex;justify-content:center;margin-top:26px}
-.cargando{opacity:.5;pointer-events:none}
-@media (max-width:720px){
-  .fila{grid-template-columns:1fr auto;grid-template-areas:'pac monto' 'proc estado' 'fecha anest'}
-  .fila .pac{grid-area:pac}.fila .proc{grid-area:proc}.fila .monto{grid-area:monto}.fila .est{grid-area:estado;text-align:right}.fila .fecha{grid-area:fecha}.fila .an{grid-area:anest;text-align:right}
-  main{padding:16px}.top{padding:12px 16px}nav{padding:0 10px}.grid2,.meta{grid-template-columns:1fr}.word small{display:none}
-  .drawer .hoja{padding:22px 16px 40px}
+/* Sistema visual compartido con Cobros y AltaPacientes */
+:root {
+  --bg: #f1ebe1; --bg-soft: #ebe4d6; --card: #ffffff; --border: #d8cfbf; --border-soft: #ebe4d6;
+  --text: #1a1a1a; --text-muted: #8a8378; --text-faint: #b3a895; --black: #1a1a1a;
+  --accent: #b09372; --accent-dark: #8e7456; --success: #5a7a4e; --error: #a13a3a;
+  --info: #4a6a82; --warn: #9a6b2e;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.03); --shadow-md: 0 2px 12px rgba(0,0,0,0.06);
+  --serif: 'Playfair Display', Georgia, serif; --sans: 'Inter', -apple-system, system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: var(--bg); font-family: var(--sans); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 400; margin: 0; color: var(--text); }
+button, input, select, textarea { font-family: var(--sans); }
+
+/* TOP BAR */
+.topbar { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; padding: 14px 24px; gap: 14px 18px; font-size: 0.72rem; color: var(--text-muted); background: var(--bg); }
+.topbar .email { letter-spacing: 0.04em; }
+.topbar .sep { opacity: .4; }
+.topbar .salir { color: var(--text); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; background: none; border: 0; padding: 0; font-size: inherit; font-family: inherit; }
+.topbar .salir:hover { color: var(--accent-dark); }
+.topbar .salir.on { color: var(--accent-dark); text-decoration-thickness: 2px; font-weight: 600; }
+.topbar .cnt { display: inline-block; min-width: 16px; padding: 0 5px; margin-left: 4px; border-radius: 8px; background: var(--accent); color: #fff; font-size: 0.66rem; text-decoration: none; }
+
+/* HERO */
+.hero { background: var(--black); color: #fff; padding: 26px 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; }
+.hero-left .step-num { font-family: var(--serif); font-size: 0.75rem; letter-spacing: 0.18em; color: #b3a895; }
+.hero-left .step-name { font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: #fff; margin-top: 2px; font-weight: 500; }
+.hero-logo-img { height: 56px; width: auto; display: block; margin: 0 auto; }
+.hero-right { text-align: right; }
+.hero-right .doc-name { font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 500; }
+.hero-right .doc-title { font-size: 0.68rem; letter-spacing: 0.18em; text-transform: uppercase; color: #b3a895; margin-top: 2px; }
+
+/* MAIN */
+main { max-width: 980px; margin: 44px auto 80px; padding: 0 24px; }
+.vhead { text-align: center; margin-bottom: 28px; }
+.vhead h1 { font-size: 2rem; letter-spacing: -0.01em; margin-bottom: 8px; }
+.vhead .eyebrow { color: var(--text-muted); font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; order: 2; }
+.vhead > div:first-child { display: flex; flex-direction: column-reverse; }
+.vhead .fecha, .vhead .lado { margin-top: 10px; color: var(--text-muted); font-size: 0.82rem; }
+.vhead .kpi { display: inline-block; margin-top: 14px; }
+.card, .panel { background: var(--card); border: 1px solid var(--border-soft); border-radius: 4px; padding: 28px; box-shadow: var(--shadow-sm); margin-bottom: 18px; }
+.panel.crema { background: var(--bg-soft); }
+.section-label, .panel h3, .card h3 { font-family: var(--serif); font-size: 1.15rem; margin: 0 0 14px; }
+.eyebrow { font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); }
+.muted, .fecha { color: var(--text-muted); font-size: 0.8rem; }
+.vacio { padding: 44px 0; text-align: center; color: var(--text-muted); font-style: italic; }
+
+/* FILTROS */
+.chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+.chip { background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 3px; padding: 8px 14px; font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; cursor: pointer; transition: all .15s; }
+.chip:hover { background: var(--bg-soft); border-color: var(--accent); }
+.chip.on { background: var(--black); color: #fff; border-color: var(--black); }
+
+/* LISTA DE CASOS */
+.lista { background: var(--card); border: 1px solid var(--border-soft); border-radius: 4px; box-shadow: var(--shadow-sm); overflow: hidden; }
+.fila { display: grid; grid-template-columns: 112px 1fr 160px 116px 110px; gap: 14px; align-items: center; padding: 16px 22px; border-bottom: 1px solid var(--border-soft); cursor: pointer; transition: background .1s; }
+.fila:last-child { border-bottom: 0; }
+.fila > div { min-width: 0; }
+.fila:hover { background: var(--bg-soft); }
+.fila .pac { font-family: var(--serif); font-size: 1.05rem; }
+.fila .proc { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fila .monto { text-align: right; font-family: var(--serif); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.fila .fecha { font-size: 0.74rem; letter-spacing: .04em; }
+.estado { display: inline-block; font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; padding: 4px 9px; border-radius: 3px; background: var(--bg-soft); color: var(--text); }
+.e-Por_confirmar { background: #fbf3e6; color: var(--warn); }
+.e-Por_aprobar { background: #e8eef3; color: var(--info); }
+.e-Aprobado { background: #e9f1e5; color: var(--success); }
+.e-En_cobro { background: #efeaf3; color: #5d4d73; }
+.e-Pagado { background: var(--black); color: #fff; }
+.e-Excluido, .e-Rechazado { background: #f0ece5; color: var(--text-faint); }
+.e-Programado { background: #fff; border: 1px solid var(--border); color: var(--text-muted); }
+
+/* FORMULARIOS Y BOTONES */
+label, .campo label { display: block; font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
+.campo { margin-bottom: 18px; }
+input[type=text], input[type=number], input[type=file], select, textarea { width: 100%; padding: 12px 14px; font-size: 0.92rem; color: var(--text); background: #fff; border: 1px solid var(--border); border-radius: 3px; outline: none; }
+input:focus, select:focus { border-color: var(--accent); }
+select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%238a8378' d='M6 8L0 0h12z'/></svg>"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; padding: 13px 26px; font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 500; border: 0; border-radius: 3px; cursor: pointer; transition: all .15s; gap: 8px; background: var(--black); color: #fff; }
+.btn:hover:not(:disabled) { background: #000; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.sec { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn.sec:hover { background: var(--bg-soft); border-color: var(--accent); }
+.btn.peligro { background: transparent; color: var(--error); border: 1px solid #e7c3c3; }
+.btn.peligro:hover { background: #fbe6e6; }
+.link { background: none; border: 0; color: var(--accent-dark); cursor: pointer; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; padding: 0; }
+
+/* AVISOS */
+.aviso { background: #fbf3e6; border: 1px solid #e8d9bc; color: #8a6d3b; border-radius: 3px; padding: 14px 16px; margin: 12px 0; font-size: 0.86rem; }
+.aviso.err { background: #fbe6e6; border-color: #e7c3c3; color: var(--error); }
+.aviso.ok { background: #e7f6ec; border-color: #b7e0c4; color: #1e7e42; }
+
+/* TABLAS */
+table { width: 100%; border-collapse: collapse; }
+th { font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-muted); text-align: left; font-weight: 500; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+td { padding: 12px 8px; border-bottom: 1px solid var(--border-soft); vertical-align: middle; font-size: 0.88rem; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.tag { font-size: 0.58rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; padding: 3px 7px; border-radius: 3px; background: var(--bg-soft); color: var(--text-muted); white-space: nowrap; }
+.tag.ag { background: #e8eef3; color: var(--info); } .tag.an { background: #fbf3e6; color: var(--warn); } .tag.ap { background: #e9f1e5; color: var(--success); }
+.tachado td { opacity: .4; text-decoration: line-through; }
+.sinmap { color: var(--error); font-weight: 500; }
+
+/* TABLERO */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.kpi { background: var(--card); border: 1px solid var(--border-soft); border-radius: 4px; padding: 20px; box-shadow: var(--shadow-sm); text-align: center; }
+.kpi .l { font-size: 0.64rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); }
+.kpi .v { font-family: var(--serif); font-size: 1.7rem; margin: 6px 0 2px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+/* DETALLE DEL CASO (panel lateral) */
+.drawer { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; z-index: 100000; }
+.drawer.on { display: block; }
+.drawer .hoja { position: absolute; right: 0; top: 0; bottom: 0; width: min(660px, 100%); background: var(--bg); overflow-y: auto; box-shadow: -8px 0 40px rgba(0,0,0,.18); }
+.drawer .hoja-top { background: var(--black); color: #fff; padding: 22px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 2; }
+.drawer .hoja-top img { height: 38px; }
+.cerrar { background: none; border: 0; color: #fff; font-size: 28px; line-height: 1; cursor: pointer; opacity: .8; }
+.cerrar:hover { opacity: 1; }
+#detalle { padding: 26px 28px 60px; }
+#detalle h2 { font-size: 1.8rem; margin: 6px 0 4px; }
+.meta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 22px; margin: 18px 0; background: var(--card); border: 1px solid var(--border-soft); border-radius: 4px; padding: 18px 20px; }
+.meta > div { font-size: 0.9rem; }
+.meta b { display: block; font-size: 0.64rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-muted); font-weight: 500; margin-bottom: 2px; }
+#detalle h3 { font-size: 1.15rem; margin: 22px 0 10px; }
+#detalle table { background: var(--card); border: 1px solid var(--border-soft); border-radius: 4px; }
+.controles { background: var(--card); border: 1px solid var(--border-soft); border-radius: 4px; padding: 4px 20px; margin-top: 18px; }
+.ctrl { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border-soft); font-size: 0.92rem; }
+.ctrl:last-child { border-bottom: 0; }
+.ctrl small { display: block; color: var(--text-muted); font-size: 0.78rem; margin-top: 2px; }
+.stepper { display: flex; align-items: center; gap: 10px; }
+.stepper button { width: 32px; height: 32px; border: 1px solid var(--border); background: #fff; border-radius: 3px; cursor: pointer; font-size: 1rem; }
+.stepper button:disabled { opacity: .4; cursor: not-allowed; }
+.switch { position: relative; width: 42px; height: 24px; background: var(--border); border-radius: 12px; border: 0; flex: none; cursor: pointer; }
+.switch.on { background: var(--black); }
+.switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: .15s; }
+.switch.on::after { left: 21px; }
+.switch:disabled { opacity: .4; cursor: not-allowed; }
+.desglose { background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 20px 22px; margin: 20px 0; }
+.desglose div { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.9rem; border-bottom: 1px solid var(--border-soft); font-variant-numeric: tabular-nums; }
+.desglose div span:first-child { color: var(--text-muted); }
+.desglose .tot { border-bottom: 0; padding-top: 14px; font-family: var(--serif); font-size: 1.4rem; }
+.desglose .tot span:first-child { color: var(--text); }
+.acciones { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+
+/* LOGIN */
+.login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.login-card { background: #fff; border: 1px solid var(--border-soft); border-radius: 6px; padding: 48px 40px; max-width: 420px; width: 100%; text-align: center; box-shadow: var(--shadow-md); }
+.login-card .login-logo-img { height: 96px; width: auto; margin: 0 auto 8px; display: block; }
+.login-card .login-doc { font-size: 0.7rem; letter-spacing: 0.22em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 32px; }
+.login-card h1 { font-size: 1.6rem; margin: 0 0 6px 0; }
+.login-card .login-sub { color: var(--text-muted); font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 28px; }
+.login-card .login-note { color: var(--text-muted); font-size: 0.78rem; margin-top: 24px; line-height: 1.5; font-style: italic; }
+#gbtn { display: flex; justify-content: center; margin-top: 8px; }
+
+.toast { position: fixed; bottom: 84px; z-index: 100001 !important; left: 50%; transform: translateX(-50%); background: var(--black); color: #fff; padding: 12px 20px; border-radius: 3px; font-size: 0.85rem; z-index: 300; display: none; max-width: 90%; box-shadow: var(--shadow-md); }
+.toast.err { background: var(--error); }
+.cargando { opacity: .5; pointer-events: none; }
+
+@media (max-width: 720px) {
+  .hero { padding: 18px 20px; grid-template-columns: 1fr; text-align: center; gap: 10px; }
+  .hero-right, .hero-left { text-align: center; }
+  main { margin: 24px auto 80px; padding: 0 14px; }
+  .vhead h1 { font-size: 1.5rem; }
+  .card, .panel { padding: 20px; }
+  .fila { grid-template-columns: 1fr auto; grid-template-areas: 'pac monto' 'proc est' 'fecha an'; padding: 14px 16px; }
+  .fila > div:nth-child(1) { grid-area: fecha; } .fila > div:nth-child(2) { grid-area: pac; }
+  .fila .an { grid-area: an; text-align: right; } .fila .est { grid-area: est; text-align: right; } .fila .monto { grid-area: monto; }
+  .grid2, .meta { grid-template-columns: 1fr; }
+  #detalle { padding: 20px 16px 60px; }
 }
 </style>
 </head>
 <body>
 <div id="app"></div>
-<div class="drawer" id="drawer"><div class="hoja"><button class="cerrar" onclick="cerrarCaso()">×</button><div id="detalle"></div></div></div>
+<div class="drawer" id="drawer" onclick="if(event.target===this)cerrarCaso()"><div class="hoja">
+  <div class="hoja-top"><img src="logo_ms_white.png" alt="MS"><button class="cerrar" onclick="cerrarCaso()" aria-label="Cerrar">×</button></div>
+  <div id="detalle"></div></div></div>
 <div class="toast" id="toast"></div>
-
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbyQzreXfVYijommhkd4mdnejSD_j5qr-ZT2fk5Ud9TEZhbkhcmgxM5xJip80vDCXy30Zg/exec';
 const CLIENT_ID = '634352012698-b47t3ed3tvd4d1g7l30l68bd6e5s0ri4.apps.googleusercontent.com';
@@ -132,10 +213,15 @@ async function api(accion, datos) {
 
 /* ---------- Sesión ---------- */
 function pintarLogin(msg) {
-  $('#app').innerHTML = `<div class="login"><div class="mono" style="margin:0 auto">MS</div>
-  <div class="eyebrow" style="margin-top:22px">Dr. Miguel Soto</div><h1>Honorarios de <em>Anestesia</em></h1>
-  <p>Casos de la agenda, validación del tabulador, factura y pago en un solo lugar.</p>
-  ${msg ? `<div class="aviso err">${esc(msg)}</div>` : ''}<div id="gbtn"></div></div>`;
+  $('#app').innerHTML = `<div class="login-screen"><div class="login-card">
+    <img src="logo_ms_black.png" alt="Dr. Miguel Soto" class="login-logo-img">
+    <div class="login-doc">Dr. Miguel Soto · Cirujano Plástico</div>
+    <h1>Honorarios de Anestesia</h1>
+    <div class="login-sub">Inicia sesión con tu cuenta autorizada</div>
+    ${msg ? `<div class="aviso err">${esc(msg)}</div>` : ''}
+    <div id="gbtn"></div>
+    <div class="login-note">Sólo cuentas autorizadas por el Dr. Soto pueden entrar.</div>
+  </div></div>`;
   const ini = () => {
     if (!window.google || !google.accounts) return setTimeout(ini, 150);
     google.accounts.id.initialize({ client_id: CLIENT_ID, callback: r => entrar(r.credential), auto_select: true });
@@ -173,10 +259,18 @@ function tabs() {
   return t;
 }
 
+const NOMBRE_VISTA = { mis: 'Mis casos', cobrar: 'Cobrar', aprobar: 'Por aprobar', todos: 'Todos los casos', equiv: 'Equivalencias', pagos: 'Pagos', tablero: 'Tablero' };
 function marco(contenido) {
-  $('#app').innerHTML = `<div class="top"><div class="brand"><div class="mono">MS</div><div class="word">DR. MIGUEL SOTO<small>Honorarios de anestesia</small></div></div>
-  <div class="who">${esc(S.yo.nombre)}<br><a onclick="salir()">Salir</a></div></div>
-  <nav>${tabs().map(([k, n]) => `<button class="${S.vista === k ? 'on' : ''}" onclick="irA('${k}')">${n}</button>`).join('')}</nav>
+  $('#app').innerHTML = `<header class="topbar">
+    <span class="email">${esc(S.yo.email)}</span><span class="sep">·</span>
+    ${tabs().map(([k, n]) => `<button class="salir ${S.vista === k ? 'on' : ''}" onclick="irA('${k}')">${n.toLowerCase()}</button>`).join('')}
+    <span class="sep">·</span><button class="salir" onclick="salir()">salir</button>
+  </header>
+  <div class="hero">
+    <div class="hero-left"><div class="step-num">HONORARIOS DE ANESTESIA</div><div class="step-name">${esc(NOMBRE_VISTA[S.vista] || '')}</div></div>
+    <img src="logo_ms_white.png" alt="MS" class="hero-logo-img">
+    <div class="hero-right"><div class="doc-name">Dr. Miguel Soto</div><div class="doc-title">Cirujano Plástico Certificado</div></div>
+  </div>
   <main>${contenido}</main>`;
 }
 
@@ -233,7 +327,7 @@ function vistaMis() {
   const conteo = {}; Object.keys(grupos).forEach(k => conteo[k] = grupos[k].length); conteo.libres = libres.length;
   if (!S.filtro) S.filtro = 'Por_confirmar';
   const lista = S.filtro === 'libres' ? libres : (grupos[S.filtro] || []);
-  marco(`<div class="hero"><div><div class="eyebrow">Anestesiología</div><h1>Mis casos</h1></div>
+  marco(`<div class="vhead"><div><div class="eyebrow">Anestesiología</div><h1>Mis casos</h1></div>
     <div class="fecha">Los casos se cargan solos de la agenda de cirugías.</div></div>
     ${chips([['Por_confirmar', 'Por confirmar'], ['Por_aprobar', 'En revisión'], ['Aprobado', 'Aprobados'], ['En_cobro', 'En cobro'], ['Pagado', 'Pagados'], ['Programado', 'Próximos'], ['libres', 'Sin asignar']], conteo)}
     ${S.filtro === 'libres' ? '<div class="aviso">Cirugías de la agenda sin anestesiólogo identificado. Si diste tú la anestesia, ábrela y márcala como tuya.</div>' : ''}
@@ -247,7 +341,7 @@ function vistaAprobar() {
   const sinMap = S.casos.filter(c => Number(c.Sin_Mapear) > 0 && ['Por_confirmar', 'Por_aprobar', 'Programado'].includes(c.Estado));
   if (!S.filtro) S.filtro = 'pend';
   const mapa = { pend, conf, sinAsig, sinMap };
-  marco(`<div class="hero"><div><div class="eyebrow">Aprobación</div><h1>Por aprobar</h1></div>
+  marco(`<div class="vhead"><div><div class="eyebrow">Aprobación</div><h1>Por aprobar</h1></div>
     <div><button class="btn sec" onclick="sincronizarAhora()">Leer agenda ahora</button>
     <div class="fecha" style="margin-top:6px;text-align:right">Última lectura: ${esc(S.yo.ultimaSinc || '—')}</div></div></div>
     ${chips([['pend', 'Confirmados por el anestesiólogo'], ['conf', 'Esperando al anestesiólogo'], ['sinAsig', 'Sin anestesiólogo'], ['sinMap', 'Sin clasificar']], { pend: pend.length, conf: conf.length, sinAsig: sinAsig.length, sinMap: sinMap.length })}
@@ -262,7 +356,7 @@ function vistaTodos() {
   if (!S.filtro) S.filtro = 'activos';
   const lista = S.filtro === 'activos' ? activos : (S.filtro === 'todos' ? S.casos : S.casos.filter(c => c.Estado === S.filtro));
   const nombres = { activos: 'Vigentes', todos: 'Todos' };
-  marco(`<div class="hero"><div><div class="eyebrow">Agenda de cirugías</div><h1>Todos los casos</h1></div></div>
+  marco(`<div class="vhead"><div><div class="eyebrow">Agenda de cirugías</div><h1>Todos los casos</h1></div></div>
   ${chips(est.map(e => [e, nombres[e] || ESTADO_TXT[e]]), conteo)}
   <div class="lista">${lista.map(c => filaCaso(c, { anest: true })).join('') || '<div class="vacio">Sin casos.</div>'}</div>`);
 }
@@ -314,7 +408,7 @@ function pintarCaso() {
   </tbody></table>
   ${edita ? `<div style="display:flex;gap:8px;margin-top:10px"><select id="nuevoProc" style="flex:1;padding:9px;border:1px solid var(--linea)">${optHtml('')}</select><button class="btn" onclick="agregar()">Agregar</button></div>` : ''}
 
-  <div style="margin-top:18px">
+  <div class="controles">
     <div class="ctrl"><div>Médico externo<small>Otro cirujano hizo un procedimiento en el mismo acto (ej. hernia umbilical)</small></div>
       <div class="stepper"><button ${edita ? '' : 'disabled'} onclick="marcar({externos:${Math.max(0, Number(c.Medicos_Externos) - 1)}})">−</button><b>${Number(c.Medicos_Externos) || 0}</b><button ${edita ? '' : 'disabled'} onclick="marcar({externos:${(Number(c.Medicos_Externos) || 0) + 1}})">+</button></div></div>
     <div class="ctrl"><div>Valoración preanestésica<small>${esc(vpaTxt)}</small></div>
@@ -380,7 +474,7 @@ async function sincronizarAhora() {
 function vistaCobrar() {
   const aprob = S.casos.filter(c => c.Estado === 'Aprobado' && String(c.Anestesiologo_Email).toLowerCase() === S.yo.email);
   const suma = aprob.filter(c => S.sel.has(c.Caso_ID)).reduce((s, c) => s + Number(c.Total), 0);
-  marco(`<div class="hero"><div><div class="eyebrow">Factura</div><h1>Cobrar</h1></div></div>
+  marco(`<div class="vhead"><div><div class="eyebrow">Factura</div><h1>Cobrar</h1></div></div>
   <div class="grid2"><div>
     <div class="panel"><h3 style="font-size:19px;margin-bottom:8px">1 · Elige los casos aprobados</h3>
     ${aprob.length ? `<table><tbody>${aprob.map(c => `<tr><td style="width:28px"><input type="checkbox" ${S.sel.has(c.Caso_ID) ? 'checked' : ''} onchange="selCaso('${c.Caso_ID}',this.checked)"></td>
@@ -432,7 +526,7 @@ function vistaPagos() {
   const total = por.reduce((a, s) => a + Number(s.Total_CFDI), 0);
   if (!S.filtro) S.filtro = 'Por_pagar';
   const lista = S.filtro === 'todas' ? S.sols : S.sols.filter(s => s.Estado === S.filtro);
-  marco(`<div class="hero"><div><div class="eyebrow">Tesorería</div><h1>Pagos a anestesiología</h1></div>
+  marco(`<div class="vhead"><div><div class="eyebrow">Tesorería</div><h1>Pagos a anestesiología</h1></div>
     <div class="kpi" style="min-width:220px"><div class="l">Por pagar</div><div class="v">${mx(total)}</div></div></div>
     ${chips([['Por_pagar', 'Por pagar'], ['Pagada', 'Pagadas'], ['Rechazada', 'Rechazadas'], ['todas', 'Todas']], { Por_pagar: por.length })}
     <div class="aviso">Haz la SPEI desde el banco y después registra el pago aquí con el comprobante. La app no mueve dinero.</div>
@@ -461,7 +555,7 @@ function vistaEquiv() {
   const orden = [...S.eqs].sort((a, b) => (a.Concepto_ID ? 1 : 0) - (b.Concepto_ID ? 1 : 0) || (Number(b.Veces_Visto) || 0) - (Number(a.Veces_Visto) || 0));
   const sin = orden.filter(e => !e.Concepto_ID).length;
   const opt = sel => `<option value="">— Sin mapear —</option>` + S.cat.tabulador.filter(t => t.tipo !== 'Cargo').map(t => `<option value="${t.id}" ${t.id === sel ? 'selected' : ''}>${esc(t.categoria)} · ${esc(t.concepto)}</option>`).join('');
-  marco(`<div class="hero"><div><div class="eyebrow">Agenda → tabulador</div><h1>Equivalencias</h1></div>
+  marco(`<div class="vhead"><div><div class="eyebrow">Agenda → tabulador</div><h1>Equivalencias</h1></div>
     <div class="fecha">${sin} nombre(s) sin mapear</div></div>
     <p class="fecha">Cada nombre comercial de la agenda se traduce a un renglón del tabulador. Los nombres nuevos aparecen aquí arriba, sin mapear, hasta que los clasifiques.</p>
     <table><thead><tr><th>Como viene en la agenda</th><th>Renglón del tabulador</th><th class="num">Veces</th><th>Notas</th></tr></thead><tbody>
@@ -480,7 +574,7 @@ function vistaTablero() {
   const k = (s) => e[s] || { n: 0, total: 0 };
   const meses = Object.keys(t.porMes).sort().reverse();
   const an = Object.keys(t.porAnest);
-  marco(`<div class="hero"><div><div class="eyebrow">Resumen</div><h1>Tablero</h1></div><div class="fecha">Última lectura de agenda: ${esc(t.ultimaSinc || '—')}</div></div>
+  marco(`<div class="vhead"><div><div class="eyebrow">Resumen</div><h1>Tablero</h1></div><div class="fecha">Última lectura de agenda: ${esc(t.ultimaSinc || '—')}</div></div>
   <div class="kpis">
     <div class="kpi"><div class="l">Por confirmar</div><div class="v">${mx(k('Por_confirmar').total)}</div><div class="fecha">${k('Por_confirmar').n} casos</div></div>
     <div class="kpi"><div class="l">Por aprobar</div><div class="v">${mx(k('Por_aprobar').total)}</div><div class="fecha">${k('Por_aprobar').n} casos</div></div>
@@ -502,6 +596,70 @@ function vistaTablero() {
   try { tok = sessionStorage.getItem('ane_tok'); } catch (e) { }
   if (tok) entrar(tok); else pintarLogin();
 })();
+</script>
+<!-- ============================================================
+     MS UNIVERSE · Lanzador minimalista entre apps
+     Pega este bloque COMPLETO (incluido el <script> del final)
+     justo ANTES de </body> en cada app:
+       altapacientes · cotizador · agenda · cobros · paquetes
+     Es el MISMO código en todas. Detecta sola en cuál estás
+     y la marca. En reposo es solo un círculo "MS".
+     ============================================================ -->
+<div id="ms-switch">
+  <div class="ms-menu">
+    <a data-app="altapacientes" href="https://altapacientes.miguelsotomd.com">Alta</a>
+    <a data-app="cotizador"     href="https://cotizador.miguelsotomd.com">Cotizador</a>
+    <a data-app="agenda"        href="https://agenda.miguelsotomd.com">Agenda</a>
+    <a data-app="cobros"        href="https://cobros.miguelsotomd.com">Cobros</a>
+    <a data-app="paquetes"      href="https://paquetes.miguelsotomd.com">Paquetes</a>
+    <a data-app="anestesia"     href="https://anestesia.miguelsotomd.com">Anestesia</a>
+  </div>
+  <button class="ms-trigger" type="button" aria-label="Cambiar de app">
+    <span class="ms-mark">MS</span>
+  </button>
+</div>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&display=swap');
+  /* Posición: por defecto abajo-derecha. Para moverlo cambia bottom/right.
+     Abajo-izquierda: left:20px; right:auto;  Arriba-derecha: top:20px; bottom:auto; */
+  #ms-switch{ position:fixed; bottom:20px; right:20px; z-index:99999;
+    font-family:'Jost',-apple-system,system-ui,sans-serif; display:flex;
+    flex-direction:column; align-items:flex-end; gap:10px; }
+
+  #ms-switch .ms-trigger{ width:48px; height:48px; border-radius:50%; cursor:pointer;
+    background:rgba(7,9,8,.88); border:1px solid rgba(161,148,135,.35);
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    box-shadow:0 10px 28px -10px rgba(0,0,0,.6); transition:transform .3s, border-color .3s;
+    display:flex; align-items:center; justify-content:center; padding:0; }
+  #ms-switch .ms-trigger:hover{ border-color:rgba(161,148,135,.7); }
+  #ms-switch .ms-mark{ font-size:15px; font-weight:400; letter-spacing:.12em; color:#F4F2F1; }
+  #ms-switch.open .ms-trigger{ transform:rotate(90deg); border-color:#A19487; }
+
+  #ms-switch .ms-menu{ display:flex; flex-direction:column; align-items:flex-end; gap:7px;
+    opacity:0; pointer-events:none; transform:translateY(8px); transition:opacity .28s, transform .28s; }
+  #ms-switch.open .ms-menu{ opacity:1; pointer-events:auto; transform:translateY(0); }
+  #ms-switch .ms-menu a{ text-decoration:none; color:#F4F2F1; font-size:12.5px; font-weight:300;
+    letter-spacing:.14em; text-transform:uppercase; padding:9px 16px; border-radius:999px;
+    background:rgba(7,9,8,.88); border:1px solid rgba(161,148,135,.22);
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    box-shadow:0 8px 22px -12px rgba(0,0,0,.6); white-space:nowrap; transition:background .25s,color .25s; }
+  #ms-switch .ms-menu a:hover{ background:rgba(161,148,135,.18); color:#fff; }
+  #ms-switch .ms-menu a.ms-active{ background:#A19487; color:#070908; font-weight:500; pointer-events:none; }
+</style>
+
+<script>
+  (function(){
+    var box = document.getElementById('ms-switch');
+    if(!box) return;
+    var trigger = box.querySelector('.ms-trigger');
+    var sub = location.hostname.split('.')[0]; // altapacientes | cotizador | agenda | cobros | paquetes
+    box.querySelectorAll('.ms-menu a').forEach(function(a){
+      if (a.getAttribute('data-app') === sub) a.classList.add('ms-active');
+    });
+    trigger.addEventListener('click', function(e){ e.stopPropagation(); box.classList.toggle('open'); });
+    document.addEventListener('click', function(){ box.classList.remove('open'); });
+  })();
 </script>
 </body>
 </html>

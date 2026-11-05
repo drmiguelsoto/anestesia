@@ -56,7 +56,9 @@ var CONFIG_SEMILLA = [
   ['DIAS_ATRAS', '90', 'Días hacia atrás que revisa la sincronización'],
   ['DIAS_ADELANTE', '30', 'Días hacia adelante (casos programados)'],
   ['TOLERANCIA_PESOS', '1', 'Diferencia máxima entre total de factura y total aprobado'],
-  ['SEDES_EXCLUIDAS', 'angeles|pedregal|hap', 'Sedes que no entran (el anestesiólogo cobra a la aseguradora)']
+  ['SEDES_EXCLUIDAS', 'angeles|pedregal|hap', 'Sedes que no entran (el anestesiólogo cobra a la aseguradora)'],
+  ['FECHA_INICIO', '2026-11-06', 'Cirugías anteriores a esta fecha no entran a la app'],
+  ['ANESTESIOLOGO_DEFAULT', 'islas.fer3@gmail.com', 'A quién se asignan los casos sin anestesiólogo identificado en la agenda']
 ];
 
 // El tabulador vive en la hoja "Costos Anestesia 2026" (COSTOS_ID en Config): los montos se leen
@@ -378,7 +380,12 @@ function actualizar_(nombre, fila, cambios) {
 
 function config_() {
   var c = {};
-  leer_('Config').forEach(function (r) { c[r.Clave] = String(r.Valor).trim(); });
+  var filas = leer_('Config');
+  filas.forEach(function (r) { c[r.Clave] = String(r.Valor).trim(); });
+  // Claves nuevas de versiones posteriores: se agregan solas con su valor por omisión.
+  CONFIG_SEMILLA.forEach(function (k) {
+    if (!(k[0] in c)) { anexar_('Config', { Clave: k[0], Valor: k[1], Descripcion: k[2] }); c[k[0]] = k[1]; }
+  });
   return c;
 }
 
@@ -511,7 +518,8 @@ function eventosAgenda_(cfg) {
 /** Núcleo de la sincronización, independiente de CalendarApp para poder probarlo. */
 function planearSincronizacion(eventos, eqs, cfg, anest, ahora) {
   var excl = new RegExp(cfg.SEDES_EXCLUIDAS || 'angeles|pedregal|hap', 'i');
-  var parsed = eventos.map(parsearEvento);
+  var inicio = cfg.FECHA_INICIO ? new Date(cfg.FECHA_INICIO + 'T00:00:00-06:00') : null;
+  var parsed = eventos.map(parsearEvento).filter(function (p) { return !inicio || p.tipo === 'vpa' || new Date(p.fecha) >= inicio; });
   var vpas = parsed.filter(function (p) { return p.tipo === 'vpa' && !p.cancelado; });
   var casos = [];
   parsed.forEach(function (p) {
@@ -549,7 +557,8 @@ function planearSincronizacion(eventos, eqs, cfg, anest, ahora) {
     });
     var operativo = vpa ? vpa.operativo : '';
     var email = '';
-    anest.forEach(function (a) { if (operativo && norm(a.Nombre_Agenda) && norm(operativo) === norm(a.Nombre_Agenda)) email = a.Email; });
+    anest.forEach(function (a) { if (a.Activo !== 'No' && operativo && norm(a.Nombre_Agenda) && norm(operativo) === norm(a.Nombre_Agenda)) email = a.Email; });
+    if (!email && cfg.ANESTESIOLOGO_DEFAULT) email = cfg.ANESTESIOLOGO_DEFAULT;
     casos.push({
       eventoId: p.id, vpaEventoId: vpa ? vpa.id : '', fecha: fecha, paciente: p.paciente, cot: p.cot,
       sede: p.sede, anestesia: p.anestesia, texto: p.texto, origen: p.tipo === 'estructurado' ? 'Agenda' : 'Agenda (texto libre)',
@@ -572,6 +581,16 @@ function sincronizar() {
     leer_('Casos').forEach(function (c) { existentes[c.Evento_ID] = c; });
     var lineasTodas = leer_('Lineas');
     var nuevos = 0, actualizados = 0;
+    if (cfg.FECHA_INICIO) {
+      Object.keys(existentes).forEach(function (k) {
+        var ex = existentes[k];
+        if (String(ex.Fecha_Cirugia instanceof Date ? Utilities.formatDate(ex.Fecha_Cirugia, TZ, 'yyyy-MM-dd') : ex.Fecha_Cirugia).slice(0, 10) < cfg.FECHA_INICIO &&
+            ['Programado', 'Por_confirmar'].indexOf(ex.Estado) >= 0) {
+          actualizar_('Casos', ex._fila, { Estado: 'Excluido', Motivo: 'Anterior al arranque de la app (' + cfg.FECHA_INICIO + ')', Actualizado_En: ahora_() });
+          ex.Estado = 'Excluido';
+        }
+      });
+    }
     var vistos = {};
     var casosNuevos = [], lineasNuevas = [];
     plan.forEach(function (c) {

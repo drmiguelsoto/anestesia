@@ -22,7 +22,7 @@
  * instalarDisparador(), publicar como App web (Ejecutar como: yo; Acceso: cualquiera).
  */
 
-var VERSION = '1.0';
+var VERSION = '1.1';
 var TZ = 'America/Mexico_City';
 var PROP = PropertiesService.getScriptProperties();
 
@@ -795,8 +795,10 @@ var ACCIONES = {
       vis = vis.filter(function (c) { return c.Estado !== 'Excluido' && (c.Anestesiologo_Email || c.Estado === 'Por_confirmar'); });
     }
     if (d.estado) vis = vis.filter(function (c) { return c.Estado === d.estado; });
-    vis.sort(function (a, b) { return String(b.Fecha_Cirugia).localeCompare(String(a.Fecha_Cirugia)); });
-    return vis.slice(0, d.limite || 400).map(limpio_);
+    // Se ordena DESPUÉS de limpio_: Sheets guarda la fecha como Date y String(Date) ordenaría por nombre del día.
+    var out = vis.map(limpio_);
+    out.sort(function (a, b) { return String(b.Fecha_Cirugia).localeCompare(String(a.Fecha_Cirugia)); });
+    return out.slice(0, d.limite || 400);
   },
 
   caso: function (u, d) {
@@ -973,9 +975,10 @@ var ACCIONES = {
     var anest = {};
     leer_('Anestesiologos').forEach(function (a) { anest[String(a.Email).toLowerCase()] = a; });
     var verBanco = tiene_(u, 'pagador');
+    todas = todas.map(function (s) { var o = limpio_(s); o._orig = s; return o; });
     todas.sort(function (a, b) { return String(b.Creado_En).localeCompare(String(a.Creado_En)); });
-    return todas.map(function (s) {
-      var o = limpio_(s);
+    return todas.map(function (o) {
+      var s = o._orig; delete o._orig;
       var a = anest[String(s.Anestesiologo_Email).toLowerCase()] || {};
       o.Anestesiologo = a.Nombre || s.Anestesiologo_Email;
       if (verBanco) { o.Banco = a.Banco || ''; o.CLABE = a.CLABE || ''; }

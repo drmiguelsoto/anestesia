@@ -255,11 +255,15 @@ function vistaAprobar() {
 }
 
 function vistaTodos() {
-  const est = ['', 'Programado', 'Por_confirmar', 'Por_aprobar', 'Aprobado', 'En_cobro', 'Pagado', 'Excluido'];
-  const conteo = { '': S.casos.length }; est.slice(1).forEach(e => conteo[e] = S.casos.filter(c => c.Estado === e).length);
-  const lista = S.filtro ? S.casos.filter(c => c.Estado === S.filtro) : S.casos;
+  const est = ['activos', 'Programado', 'Por_confirmar', 'Por_aprobar', 'Aprobado', 'En_cobro', 'Pagado', 'Excluido', 'todos'];
+  const activos = S.casos.filter(c => c.Estado !== 'Excluido');
+  const conteo = { activos: activos.length, todos: S.casos.length };
+  est.forEach(e => { if (!(e in conteo)) conteo[e] = S.casos.filter(c => c.Estado === e).length; });
+  if (!S.filtro) S.filtro = 'activos';
+  const lista = S.filtro === 'activos' ? activos : (S.filtro === 'todos' ? S.casos : S.casos.filter(c => c.Estado === S.filtro));
+  const nombres = { activos: 'Vigentes', todos: 'Todos' };
   marco(`<div class="hero"><div><div class="eyebrow">Agenda de cirugías</div><h1>Todos los casos</h1></div></div>
-  ${chips(est.map(e => [e, e ? ESTADO_TXT[e] : 'Todos']), conteo)}
+  ${chips(est.map(e => [e, nombres[e] || ESTADO_TXT[e]]), conteo)}
   <div class="lista">${lista.map(c => filaCaso(c, { anest: true })).join('') || '<div class="vacio">Sin casos.</div>'}</div>`);
 }
 

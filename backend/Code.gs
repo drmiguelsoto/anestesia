@@ -18,8 +18,9 @@
  *  - Anestesia local: no hay anestesiólogo. Ángeles del Pedregal: el
  *    anestesiólogo cobra a la aseguradora con carta pase; no entra aquí.
  *
- * Quién paga (5 nov 2026): según la sede. Zorvix → Miguel Soto, persona física.
- * Renasté → Renasté, persona moral. Sin sede en la agenda → el aprobador lo elige.
+ * Quién paga (5 nov 2026): Zorvix → Miguel Soto, persona física (automático por sede).
+ * Renasté → CLINICAS RENASTERE (moral) o Dra. Carmen Damián (física): lo elige el aprobador
+ * caso por caso. Sin sede en la agenda → también lo elige el aprobador.
  * Una factura sólo puede llevar casos de un mismo pagador y debe venir a su RFC.
  *
  * Instalación: correr bootstrap() una vez, llenar la hoja Config, correr
@@ -183,8 +184,11 @@ var EQUIVALENCIAS_SEMILLA = [
 // Quién paga según la sede. Patron_Sede = expresión que se busca en la sede (sin acentos, minúsculas).
 // Pagan = correos (separados por coma) de quien registra los pagos de ese pagador; el admin paga todos.
 var PAGADORES_SEMILLA = [
-  ['PF', 'Zorvix · Miguel Soto, persona física', 'MIGUEL ANGEL SOTO MIRANDA', 'SOMM790130NHA', 'zorvix', '', 'Sí'],
-  ['RENASTE', 'Renasté · persona moral', 'CLINICAS RENASTERE', 'CRE220905PV8', 'renaste', '', 'Sí', '601 · General de Ley Personas Morales', '04460']
+  ['PF', 'Zorvix · Miguel Soto, persona física', 'MIGUEL ANGEL SOTO MIRANDA', 'SOMM790130NHA', 'zorvix', '', 'Sí', '612 · Personas Físicas con Actividades Empresariales y Profesionales', '04460'],
+  // Renasté: cada cirugía la paga la persona moral o la Dra. Damián según convenga fiscalmente, así que
+  // no hay regla por sede: el aprobador elige. La Dra. Damián registra los pagos de ambos.
+  ['RENASTE', 'Renasté · CLINICAS RENASTERE (persona moral)', 'CLINICAS RENASTERE', 'CRE220905PV8', '', 'drcarmendamian@gmail.com', 'Sí', '601 · General de Ley Personas Morales', '04460'],
+  ['CARMEN', 'Renasté · Dra. Carmen Damián (persona física)', 'MARIA DEL CARMEN DAMIAN TOVAR', 'DATC790310RL0', '', 'drcarmendamian@gmail.com', 'Sí', '612 · Personas Físicas con Actividades Empresariales y Profesionales', '04460']
 ];
 
 /** Pagador que corresponde a una sede ('' si no hay sede o ninguna regla aplica). */

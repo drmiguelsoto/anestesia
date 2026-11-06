@@ -402,7 +402,7 @@ function pintarCaso() {
       ? `<select onchange="marcar({pagador:this.value})" style="margin-top:4px;padding:6px;border:1px solid ${c.Pagador ? 'var(--linea)' : 'var(--error)'}"><option value="">Por definir</option>${(S.cat.pagadores || []).map(p => `<option value="${esc(p.id)}" ${p.id === c.Pagador ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>`
       : esc(nombrePag(c.Pagador))}</div>
   </div>
-  ${!c.Pagador && c.Estado !== 'Excluido' ? `<div class="aviso err">La agenda no dice la sede de esta cirugía. ${tiene('aprobador') ? 'Elige arriba quién paga (Zorvix o Renasté) antes de aprobar.' : 'El Dr. Soto indicará quién la paga.'}</div>` : ''}
+  ${!c.Pagador && c.Estado !== 'Excluido' ? `<div class="aviso err">${/renast/i.test(c.Sede || '') ? 'Cirugía en Renasté: falta decidir si la paga CLINICAS RENASTERE o la Dra. Carmen Damián.' : 'La agenda no dice la sede de esta cirugía.'} ${tiene('aprobador') ? 'Elige arriba quién paga antes de aprobar.' : 'El Dr. Soto indicará quién la paga.'}</div>` : ''}
   ${c.Motivo ? `<div class="aviso">${esc(c.Motivo)}</div>` : ''}
   ${!c.Anestesiologo_Email && tiene('anestesiologo') && c.Estado === 'Por_confirmar' ? `<div class="aviso">Este caso no tiene anestesiólogo en la agenda. <button class="btn" style="margin-left:8px" onclick="accion('reclamar')">Yo di esta anestesia</button></div>` : ''}
 
@@ -500,7 +500,7 @@ function vistaCobrar() {
   marco(`<div class="vhead"><div><div class="eyebrow">Factura</div><h1>Cobrar</h1></div></div>
   <div class="grid2"><div>
     <div class="panel"><h3 style="font-size:19px;margin-bottom:8px">1 · Elige los casos aprobados</h3>
-    <p class="fecha" style="margin-bottom:10px">Zorvix y Renasté pagan por separado: cada factura lleva casos de un solo pagador.</p>
+    <p class="fecha" style="margin-bottom:10px">Cada pagador es una razón social distinta: cada factura lleva casos de un solo pagador.</p>
     ${aprob.length ? Object.keys(grupos).map(bloque).join('') : '<div class="vacio">No tienes casos aprobados por cobrar.</div>'}
     </div></div>
     <div><div class="panel crema"><h3 style="font-size:19px">2 · Sube tu factura</h3>

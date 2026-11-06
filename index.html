@@ -274,7 +274,7 @@ function marco(contenido) {
   <main>${contenido}</main>`;
 }
 
-async function irA(v) { S.vista = v; S.filtro = ''; S.sel.clear(); await cargarVista(); }
+async function irA(v) { S.vista = v; S.filtro = ''; S.sel.clear(); S.selPag = ''; await cargarVista(); }
 
 async function cargarVista() {
   marco('<div class="vacio">Cargando…</div>');
@@ -305,10 +305,13 @@ function nombreAnest(email) {
   return a ? a.nombre : email;
 }
 
+function pagador(id) { return (S.cat.pagadores || []).find(p => p.id === id); }
+function nombrePag(id) { const p = pagador(id); return p ? p.nombre : 'Por definir'; }
+
 function filaCaso(c, opts = {}) {
   const sm = Number(c.Sin_Mapear) > 0 ? ' <span class="sinmap">· sin clasificar</span>' : '';
   return `<div class="fila" onclick="abrirCaso('${c.Caso_ID}')">
-    <div class="fecha">${esc(String(c.Fecha_Cirugia).slice(0, 10))}<br>${esc(c.Sede || '')}</div>
+    <div class="fecha">${esc(String(c.Fecha_Cirugia).slice(0, 10))}<br>${c.Pagador ? esc(c.Sede || nombrePag(c.Pagador)) : (c.Estado === 'Excluido' ? esc(c.Sede || '') : '<span class="sinmap">¿Quién paga?</span>')}</div>
     <div><div class="pac">${esc(c.Paciente)}</div><div class="proc">${esc(c.Texto_Agenda || '')}${sm}</div></div>
     <div class="an fecha">${opts.anest ? esc(nombreAnest(c.Anestesiologo_Email)) : esc(c.Tipo_Anestesia || '')}</div>
     <div class="est"><span class="estado e-${c.Estado}">${ESTADO_TXT[c.Estado] || c.Estado}</span></div>
@@ -339,12 +342,13 @@ function vistaAprobar() {
   const conf = S.casos.filter(c => c.Estado === 'Por_confirmar');
   const sinAsig = conf.filter(c => !c.Anestesiologo_Email);
   const sinMap = S.casos.filter(c => Number(c.Sin_Mapear) > 0 && ['Por_confirmar', 'Por_aprobar', 'Programado'].includes(c.Estado));
+  const sinPag = S.casos.filter(c => !c.Pagador && ['Por_confirmar', 'Por_aprobar', 'Programado'].includes(c.Estado));
   if (!S.filtro) S.filtro = 'pend';
-  const mapa = { pend, conf, sinAsig, sinMap };
+  const mapa = { pend, conf, sinAsig, sinMap, sinPag };
   marco(`<div class="vhead"><div><div class="eyebrow">Aprobación</div><h1>Por aprobar</h1></div>
     <div><button class="btn sec" onclick="sincronizarAhora()">Leer agenda ahora</button>
     <div class="fecha" style="margin-top:6px;text-align:right">Última lectura: ${esc(S.yo.ultimaSinc || '—')}</div></div></div>
-    ${chips([['pend', 'Confirmados por el anestesiólogo'], ['conf', 'Esperando al anestesiólogo'], ['sinAsig', 'Sin anestesiólogo'], ['sinMap', 'Sin clasificar']], { pend: pend.length, conf: conf.length, sinAsig: sinAsig.length, sinMap: sinMap.length })}
+    ${chips([['pend', 'Confirmados por el anestesiólogo'], ['conf', 'Esperando al anestesiólogo'], ['sinAsig', 'Sin anestesiólogo'], ['sinMap', 'Sin clasificar'], ['sinPag', 'Sin pagador']], { pend: pend.length, conf: conf.length, sinAsig: sinAsig.length, sinMap: sinMap.length, sinPag: sinPag.length })}
     <div class="lista">${(mapa[S.filtro] || []).map(c => filaCaso(c, { anest: true })).join('') || '<div class="vacio">Nada pendiente.</div>'}</div>`);
 }
 
@@ -394,7 +398,11 @@ function pintarCaso() {
     <div style="grid-column:1/-1"><b>Anestesiólogo</b>${tiene('aprobador') && aprobEdita
       ? `<select onchange="marcar({anestesiologo:this.value})" style="margin-top:4px;padding:6px;border:1px solid var(--linea)"><option value="">Sin asignar</option>${S.cat.anestesiologos.map(a => `<option value="${esc(a.email)}" ${a.email.toLowerCase() === String(c.Anestesiologo_Email).toLowerCase() ? 'selected' : ''}>${esc(a.nombre)}</option>`).join('')}</select>`
       : esc(nombreAnest(c.Anestesiologo_Email))}</div>
+    <div style="grid-column:1/-1"><b>Paga</b>${tiene('aprobador') && aprobEdita
+      ? `<select onchange="marcar({pagador:this.value})" style="margin-top:4px;padding:6px;border:1px solid ${c.Pagador ? 'var(--linea)' : 'var(--error)'}"><option value="">Por definir</option>${(S.cat.pagadores || []).map(p => `<option value="${esc(p.id)}" ${p.id === c.Pagador ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>`
+      : esc(nombrePag(c.Pagador))}</div>
   </div>
+  ${!c.Pagador && c.Estado !== 'Excluido' ? `<div class="aviso err">La agenda no dice la sede de esta cirugía. ${tiene('aprobador') ? 'Elige arriba quién paga (Zorvix o Renasté) antes de aprobar.' : 'El Dr. Soto indicará quién la paga.'}</div>` : ''}
   ${c.Motivo ? `<div class="aviso">${esc(c.Motivo)}</div>` : ''}
   ${!c.Anestesiologo_Email && tiene('anestesiologo') && c.Estado === 'Por_confirmar' ? `<div class="aviso">Este caso no tiene anestesiólogo en la agenda. <button class="btn" style="margin-left:8px" onclick="accion('reclamar')">Yo di esta anestesia</button></div>` : ''}
 
@@ -473,26 +481,49 @@ async function sincronizarAhora() {
 /* ---------- Cobrar (anestesiólogo) ---------- */
 function vistaCobrar() {
   const aprob = S.casos.filter(c => c.Estado === 'Aprobado' && String(c.Anestesiologo_Email).toLowerCase() === S.yo.email);
+  const grupos = {};
+  aprob.forEach(c => { (grupos[c.Pagador || ''] = grupos[c.Pagador || ''] || []).push(c); });
+  const selPag = S.selPag || '';
   const suma = aprob.filter(c => S.sel.has(c.Caso_ID)).reduce((s, c) => s + Number(c.Total), 0);
+  const p = pagador(selPag);
+  const receptor = p ? `<div class="desglose" style="background:#fff">
+      <div><span>Razón social</span><span>${esc(p.razon || 'Pendiente: pídela al Dr. Soto')}</span></div>
+      <div><span>RFC</span><span>${esc(p.rfc || 'Pendiente: pídelo al Dr. Soto')}</span></div>
+      <div class="tot"><span>Total a facturar</span><span>${mx(suma)}</span></div></div>`
+    : `<div class="desglose" style="background:#fff"><div class="tot"><span>Total a facturar</span><span>${mx(0)}</span></div></div>`;
+  const bloque = id => `<div style="margin-bottom:14px"><div class="eyebrow" style="margin-bottom:6px">Paga: ${esc(nombrePag(id))}</div>
+    <table><tbody>${grupos[id].map(c => `<tr><td style="width:28px"><input type="checkbox" ${S.sel.has(c.Caso_ID) ? 'checked' : ''} onchange="selCaso('${c.Caso_ID}',this.checked)"></td>
+      <td><b>${esc(c.Paciente)}</b><br><span class="fecha">${esc(String(c.Fecha_Cirugia).slice(0, 10))} · ${esc(c.Sede || '')} · ${esc(c.Caso_ID)}</span></td><td class="num">${mx(c.Total)}</td></tr>`).join('')}</tbody></table>
+    <div style="margin-top:8px"><button class="chip" onclick="aprob_todos('${id}')">Seleccionar todos</button></div></div>`;
   marco(`<div class="vhead"><div><div class="eyebrow">Factura</div><h1>Cobrar</h1></div></div>
   <div class="grid2"><div>
     <div class="panel"><h3 style="font-size:19px;margin-bottom:8px">1 · Elige los casos aprobados</h3>
-    ${aprob.length ? `<table><tbody>${aprob.map(c => `<tr><td style="width:28px"><input type="checkbox" ${S.sel.has(c.Caso_ID) ? 'checked' : ''} onchange="selCaso('${c.Caso_ID}',this.checked)"></td>
-      <td><b>${esc(c.Paciente)}</b><br><span class="fecha">${esc(String(c.Fecha_Cirugia).slice(0, 10))} · ${esc(c.Caso_ID)}</span></td><td class="num">${mx(c.Total)}</td></tr>`).join('')}</tbody></table>
-      <div style="margin-top:8px"><button class="chip" onclick="aprob_todos()">Seleccionar todos</button></div>` : '<div class="vacio">No tienes casos aprobados por cobrar.</div>'}
+    <p class="fecha" style="margin-bottom:10px">Zorvix y Renasté pagan por separado: cada factura lleva casos de un solo pagador.</p>
+    ${aprob.length ? Object.keys(grupos).map(bloque).join('') : '<div class="vacio">No tienes casos aprobados por cobrar.</div>'}
     </div></div>
     <div><div class="panel crema"><h3 style="font-size:19px">2 · Sube tu factura</h3>
-      <p class="fecha">La factura debe sumar exactamente el total de los casos elegidos. Sube el XML (obligatorio) y el PDF.</p>
-      <div class="desglose" style="background:#fff"><div class="tot"><span>Total a facturar</span><span>${mx(suma)}</span></div></div>
+      <p class="fecha">Emite la factura a nombre de estos datos, por el total exacto de los casos elegidos. Sube el XML (obligatorio) y el PDF.</p>
+      ${receptor}
       <div class="campo"><label>XML del CFDI</label><input type="file" id="fxml" accept=".xml,text/xml,application/xml"></div>
       <div class="campo"><label>PDF</label><input type="file" id="fpdf" accept="application/pdf"></div>
-      <button class="btn" ${suma > 0 ? '' : 'disabled'} onclick="enviarFactura()">Enviar a pago</button>
+      <button class="btn" ${suma > 0 && p && p.rfc ? '' : 'disabled'} onclick="enviarFactura()">Enviar a pago</button>
       <div id="resFactura"></div></div></div></div>
   <h3 style="font-size:21px;margin:16px 0 8px">Mis solicitudes de pago</h3>
   ${tablaSolicitudes(S.sols, false)}`);
 }
-function selCaso(id, on) { on ? S.sel.add(id) : S.sel.delete(id); pintar(); }
-function aprob_todos() { S.casos.filter(c => c.Estado === 'Aprobado' && String(c.Anestesiologo_Email).toLowerCase() === S.yo.email).forEach(c => S.sel.add(c.Caso_ID)); pintar(); }
+function selCaso(id, on) {
+  const c = S.casos.find(x => x.Caso_ID === id);
+  const pid = c ? (c.Pagador || '') : '';
+  if (on && S.sel.size && S.selPag !== pid) { S.sel.clear(); toast('Cada factura lleva casos de un solo pagador: cambié tu selección'); }
+  on ? S.sel.add(id) : S.sel.delete(id);
+  S.selPag = S.sel.size ? pid : '';
+  pintar();
+}
+function aprob_todos(pid) {
+  S.sel.clear(); S.selPag = pid;
+  S.casos.filter(c => c.Estado === 'Aprobado' && (c.Pagador || '') === pid && String(c.Anestesiologo_Email).toLowerCase() === S.yo.email).forEach(c => S.sel.add(c.Caso_ID));
+  pintar();
+}
 const leerB64 = f => new Promise((ok, mal) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = mal; r.readAsDataURL(f); });
 async function enviarFactura() {
   const x = $('#fxml').files[0], p = $('#fpdf').files[0];
@@ -501,7 +532,7 @@ async function enviarFactura() {
   $('#resFactura').innerHTML = '<div class="aviso">Validando la factura con el SAT…</div>';
   try {
     const r = await api('crearSolicitud', { casos: [...S.sel], xml: await leerB64(x), pdf: p ? await leerB64(p) : '' });
-    S.sel.clear();
+    S.sel.clear(); S.selPag = '';
     toast('Factura aceptada · ' + r.solicitud);
     await cargarVista();
   } catch (e) { $('#resFactura').innerHTML = `<div class="aviso err">${esc(e.message)}</div>`; }
@@ -509,25 +540,27 @@ async function enviarFactura() {
 
 function tablaSolicitudes(lista, pagador) {
   if (!lista.length) return '<div class="vacio">Sin solicitudes.</div>';
-  return `<table><thead><tr><th>Solicitud</th>${pagador ? '<th>Anestesiólogo</th>' : ''}<th>Casos</th><th>Factura</th><th class="num">Total</th><th>Estado</th>${pagador ? '<th></th>' : ''}</tr></thead><tbody>
+  return `<table><thead><tr><th>Solicitud</th>${pagador ? '<th>Anestesiólogo</th>' : ''}<th>Paga</th><th>Casos</th><th>Factura</th><th class="num">Total</th><th>Estado</th>${pagador ? '<th></th>' : ''}</tr></thead><tbody>
   ${lista.map(s => `<tr><td><b>${esc(s.Solicitud_ID)}</b><br><span class="fecha">${esc(String(s.Creado_En).slice(0, 10))}</span></td>
     ${pagador ? `<td>${esc(s.Anestesiologo)}${s.CLABE ? `<br><span class="fecha">${esc(s.Banco)} · CLABE ${esc(s.CLABE)}</span>` : '<br><span class="sinmap">Sin CLABE registrada</span>'}</td>` : ''}
+    <td class="fecha">${esc(s.Pagador_Nombre || '—')}</td>
     <td class="fecha">${esc(String(s.Casos).split(',').length)} caso(s)</td>
     <td class="fecha">${s.XML_URL ? `<a href="${s.XML_URL}" target="_blank">XML</a>` : ''} ${s.PDF_URL ? `· <a href="${s.PDF_URL}" target="_blank">PDF</a>` : ''}<br>SAT: ${esc(s.Estado_SAT)}</td>
     <td class="num">${mx(s.Total_CFDI)}</td>
     <td><span class="estado e-${s.Estado === 'Pagada' ? 'Pagado' : (s.Estado === 'Rechazada' ? 'Rechazado' : 'En_cobro')}">${ESTADO_TXT[s.Estado] || s.Estado}</span>${s.Comprobante_URL ? `<br><a class="fecha" href="${s.Comprobante_URL}" target="_blank">Comprobante</a>` : ''}${s.Motivo ? `<br><span class="fecha">${esc(s.Motivo)}</span>` : ''}</td>
-    ${pagador ? `<td>${s.Estado === 'Por_pagar' ? `<button class="btn" onclick="pagar('${s.Solicitud_ID}')">Registrar pago</button><br><button class="chip" style="margin-top:6px" onclick="rechazarSol('${s.Solicitud_ID}')">Rechazar</button>` : ''}</td>` : ''}</tr>`).join('')}
+    ${pagador ? `<td>${s.Estado === 'Por_pagar' && s.Puedo_Pagar ? `<button class="btn" onclick="pagar('${s.Solicitud_ID}')">Registrar pago</button><br><button class="chip" style="margin-top:6px" onclick="rechazarSol('${s.Solicitud_ID}')">Rechazar</button>` : ''}</td>` : ''}</tr>`).join('')}
   </tbody></table>`;
 }
 
 /* ---------- Pagos ---------- */
 function vistaPagos() {
-  const por = S.sols.filter(s => s.Estado === 'Por_pagar');
-  const total = por.reduce((a, s) => a + Number(s.Total_CFDI), 0);
+  const por = S.sols.filter(s => s.Estado === 'Por_pagar' && s.Puedo_Pagar);
+  const porPag = {};
+  por.forEach(s => { porPag[s.Pagador_Nombre] = (porPag[s.Pagador_Nombre] || 0) + Number(s.Total_CFDI); });
   if (!S.filtro) S.filtro = 'Por_pagar';
   const lista = S.filtro === 'todas' ? S.sols : S.sols.filter(s => s.Estado === S.filtro);
   marco(`<div class="vhead"><div><div class="eyebrow">Tesorería</div><h1>Pagos a anestesiología</h1></div>
-    <div class="kpi" style="min-width:220px"><div class="l">Por pagar</div><div class="v">${mx(total)}</div></div></div>
+    <div>${Object.keys(porPag).length ? Object.keys(porPag).map(n => `<div class="kpi" style="min-width:220px;margin:0 6px 6px 0"><div class="l">Por pagar · ${esc(n)}</div><div class="v">${mx(porPag[n])}</div></div>`).join('') : `<div class="kpi" style="min-width:220px"><div class="l">Por pagar</div><div class="v">${mx(0)}</div></div>`}</div></div>
     ${chips([['Por_pagar', 'Por pagar'], ['Pagada', 'Pagadas'], ['Rechazada', 'Rechazadas'], ['todas', 'Todas']], { Por_pagar: por.length })}
     <div class="aviso">Haz la SPEI desde el banco y después registra el pago aquí con el comprobante. La app no mueve dinero.</div>
     ${tablaSolicitudes(lista, true)}
@@ -585,6 +618,8 @@ function vistaTablero() {
   <div class="grid2">
     <div class="panel"><h3 style="font-size:19px;margin-bottom:8px">Por anestesiólogo</h3>
       ${an.length ? `<table><thead><tr><th>Anestesiólogo</th><th class="num">Pendiente</th><th class="num">Pagado</th></tr></thead><tbody>${an.map(n => `<tr><td>${esc(n)}</td><td class="num">${mx(t.porAnest[n].pendiente)}</td><td class="num">${mx(t.porAnest[n].pagado)}</td></tr>`).join('')}</tbody></table>` : '<div class="vacio">Sin datos</div>'}</div>
+    <div class="panel"><h3 style="font-size:19px;margin-bottom:8px">Por pagador</h3>
+      ${Object.keys(t.porPagador || {}).length ? `<table><thead><tr><th>Paga</th><th class="num">Pendiente</th><th class="num">Pagado</th></tr></thead><tbody>${Object.keys(t.porPagador).map(n => `<tr><td>${esc(n)}</td><td class="num">${mx(t.porPagador[n].pendiente)}</td><td class="num">${mx(t.porPagador[n].pagado)}</td></tr>`).join('')}</tbody></table>` : '<div class="vacio">Sin datos</div>'}</div>
     <div class="panel"><h3 style="font-size:19px;margin-bottom:8px">Pagado por mes de cirugía</h3>
       ${meses.length ? `<table><tbody>${meses.map(m => `<tr><td>${esc(m)}</td><td class="num">${mx(t.porMes[m])}</td></tr>`).join('')}</tbody></table>` : '<div class="vacio">Todavía no hay pagos registrados.</div>'}</div>
   </div>`);

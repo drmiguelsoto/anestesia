@@ -18,11 +18,15 @@
  *  - Anestesia local: no hay anestesiólogo. Ángeles del Pedregal: el
  *    anestesiólogo cobra a la aseguradora con carta pase; no entra aquí.
  *
+ * Quién paga (5 nov 2026): según la sede. Zorvix → Miguel Soto, persona física.
+ * Renasté → Renasté, persona moral. Sin sede en la agenda → el aprobador lo elige.
+ * Una factura sólo puede llevar casos de un mismo pagador y debe venir a su RFC.
+ *
  * Instalación: correr bootstrap() una vez, llenar la hoja Config, correr
  * instalarDisparador(), publicar como App web (Ejecutar como: yo; Acceso: cualquiera).
  */
 
-var VERSION = '1.1';
+var VERSION = '1.2';
 var TZ = 'America/Mexico_City';
 var PROP = PropertiesService.getScriptProperties();
 
@@ -34,16 +38,17 @@ var ESQUEMA = {
   Equivalencias: ['Nombre_Agenda', 'Clave_Normal', 'Concepto_ID', 'Notas', 'Veces_Visto', 'Ultima_Vez'],
   Anestesiologos: ['Email', 'Nombre', 'Nombre_Agenda', 'RFC', 'Banco', 'CLABE', 'Activo'],
   Usuarios: ['Email', 'Nombre', 'Rol', 'Activo'],
+  Pagadores: ['Pagador_ID', 'Nombre', 'Razon_Social', 'RFC', 'Patron_Sede', 'Pagan', 'Activo'],
   Casos: ['Caso_ID', 'Evento_ID', 'VPA_Evento_ID', 'Fecha_Cirugia', 'Paciente', 'COT', 'Sede',
     'Tipo_Anestesia', 'Texto_Agenda', 'Origen', 'Anestesiologo_Email', 'Estado',
     'VPA_Agenda', 'VPA_Cobra', 'Medicos_Externos', 'Reintervencion', 'Reintervencion_Ref',
     'Base_Concepto', 'Base_Monto', 'Adicionales_N', 'Adicionales_Monto', 'Externos_Monto',
     'VPA_Monto', 'Total', 'Sin_Mapear', 'Solicitud_ID', 'Confirmado_En', 'Aprobado_Por',
-    'Aprobado_En', 'Motivo', 'Creado_En', 'Actualizado_En'],
+    'Aprobado_En', 'Motivo', 'Creado_En', 'Actualizado_En', 'Pagador'],
   Lineas: ['Linea_ID', 'Caso_ID', 'Origen', 'Texto', 'Concepto_ID', 'Activa', 'Agregado_Por', 'Agregado_En'],
   Solicitudes: ['Solicitud_ID', 'Anestesiologo_Email', 'Casos', 'Total_Casos', 'UUID', 'RFC_Emisor',
     'RFC_Receptor', 'Total_CFDI', 'Fecha_CFDI', 'Estado_SAT', 'XML_ID', 'PDF_ID', 'Estado',
-    'Creado_En', 'Comprobante_ID', 'Referencia_Pago', 'Pagado_Por', 'Pagado_En', 'Motivo'],
+    'Creado_En', 'Comprobante_ID', 'Referencia_Pago', 'Pagado_Por', 'Pagado_En', 'Motivo', 'Pagador'],
   Bitacora: ['Fecha', 'Usuario', 'Accion', 'Objeto', 'Detalle']
 };
 
@@ -51,7 +56,7 @@ var CONFIG_SEMILLA = [
   ['CALENDARIO_ID', 'cirugiasotodamian@gmail.com', 'Agenda de donde se jalan los casos'],
   ['COSTOS_ID', '1fuGfx6t3upxK5JEZt9cFVbvJYlwJxAAkkoRiXQ5GAFw', 'Hoja "Costos Anestesia 2026": de aquí salen los montos'],
   ['OAUTH_CLIENT_ID', '', 'Cliente OAuth web del login de Google (mismo de las demás apps)'],
-  ['RFC_RECEPTOR', '', 'RFC al que deben venir las facturas (Miguel Soto, persona física)'],
+  ['RFC_RECEPTOR', '', 'Ya no se usa: el RFC de cada pagador vive en la hoja Pagadores'],
   ['CARPETA_ID', '', 'Carpeta de Drive para facturas y comprobantes (la crea bootstrap)'],
   ['DIAS_ATRAS', '90', 'Días hacia atrás que revisa la sincronización'],
   ['DIAS_ADELANTE', '30', 'Días hacia adelante (casos programados)'],
@@ -174,6 +179,25 @@ var EQUIVALENCIAS_SEMILLA = [
   ['Suero fisiológico intravenoso y renegy', 'NC', ''], ['Renneva Lite', 'NC', ''],
   ['cuello completo', 'NC', 'fragmento de "Ultherapy cara completa + cuello completo"']
 ];
+
+// Quién paga según la sede. Patron_Sede = expresión que se busca en la sede (sin acentos, minúsculas).
+// Pagan = correos (separados por coma) de quien registra los pagos de ese pagador; el admin paga todos.
+var PAGADORES_SEMILLA = [
+  ['PF', 'Zorvix · Miguel Soto, persona física', 'MIGUEL ANGEL SOTO MIRANDA', 'SOMM790130NHA', 'zorvix', '', 'Sí'],
+  ['RENASTE', 'Renasté · persona moral', '', '', 'renaste', '', 'Sí']
+];
+
+/** Pagador que corresponde a una sede ('' si no hay sede o ninguna regla aplica). */
+function pagadorDeSede(sede, pagadores) {
+  var t = norm(sede);
+  if (!t) return '';
+  for (var i = 0; i < pagadores.length; i++) {
+    var p = pagadores[i];
+    if (p.Activo === 'No' || !p.Patron_Sede) continue;
+    if (new RegExp(p.Patron_Sede, 'i').test(t)) return p.Pagador_ID;
+  }
+  return '';
+}
 
 var ESTADOS = ['Programado', 'Por_confirmar', 'Por_aprobar', 'Aprobado', 'En_cobro', 'Pagado', 'Rechazado', 'Excluido'];
 
@@ -353,9 +377,10 @@ function leer_(nombre) {
   var h = hoja_(nombre);
   var v = h.getDataRange().getValues();
   var enc = v.shift().map(String);
-  return v.filter(function (r) { return r.join('') !== ''; }).map(function (r, i) {
-    var o = { _fila: i + 2 };
-    enc.forEach(function (c, j) { o[c] = r[j]; });
+  // El número de fila se toma ANTES de saltar renglones vacíos, para no escribir en la fila equivocada.
+  return v.map(function (r, i) { return { r: r, fila: i + 2 }; }).filter(function (x) { return x.r.join('') !== ''; }).map(function (x) {
+    var o = { _fila: x.fila };
+    enc.forEach(function (c, j) { o[c] = x.r[j]; });
     return o;
   });
 }
@@ -485,6 +510,17 @@ function bootstrap() {
     if (claves.indexOf(k) < 0) { eqs.push({ Nombre_Agenda: e[0], Clave_Normal: k, Concepto_ID: e[1], Notas: e[2], Veces_Visto: 0 }); claves.push(k); }
   });
   anexarVarios_('Equivalencias', eqs);
+  if (!leer_('Pagadores').length) anexarVarios_('Pagadores', PAGADORES_SEMILLA.map(function (p) {
+    return { Pagador_ID: p[0], Nombre: p[1], Razon_Social: p[2], RFC: p[3], Patron_Sede: p[4], Pagan: p[5], Activo: p[6] };
+  }));
+  // Casos abiertos que aún no tienen pagador: se asigna por su sede.
+  var pagsB = leer_('Pagadores');
+  leer_('Casos').forEach(function (c) {
+    if (!c.Pagador && ['Pagado', 'Excluido'].indexOf(c.Estado) < 0) {
+      var pid = pagadorDeSede(c.Sede, pagsB);
+      if (pid) actualizar_('Casos', c._fila, { Pagador: pid });
+    }
+  });
   if (!leer_('Usuarios').length) {
     anexar_('Usuarios', { Email: Session.getEffectiveUser().getEmail(), Nombre: 'Dr. Miguel Soto', Rol: 'admin', Activo: 'Sí' });
   }
@@ -561,7 +597,7 @@ function planearSincronizacion(eventos, eqs, cfg, anest, ahora) {
     if (!email && cfg.ANESTESIOLOGO_DEFAULT) email = cfg.ANESTESIOLOGO_DEFAULT;
     casos.push({
       eventoId: p.id, vpaEventoId: vpa ? vpa.id : '', fecha: fecha, paciente: p.paciente, cot: p.cot,
-      sede: p.sede, anestesia: p.anestesia, texto: p.texto, origen: p.tipo === 'estructurado' ? 'Agenda' : 'Agenda (texto libre)',
+      sede: p.sede, pagador: pagadorDeSede(p.sede, cfg._pagadores || []), anestesia: p.anestesia, texto: p.texto, origen: p.tipo === 'estructurado' ? 'Agenda' : 'Agenda (texto libre)',
       anestesiologo: email, vpaAgenda: vpa ? (vpa.asistencia || 'Sin marcar') : 'Sin VPA',
       estado: motivoExcl ? 'Excluido' : (fecha > ahora ? 'Programado' : 'Por_confirmar'),
       motivo: motivoExcl, lineas: lineas
@@ -575,6 +611,7 @@ function sincronizar() {
   LOCK_TOMADO = true;
   try {
     var cfg = config_(), tab = tabulador_(), eqs = equivalencias_();
+    cfg._pagadores = leer_('Pagadores');
     var anest = leer_('Anestesiologos');
     var plan = planearSincronizacion(eventosAgenda_(cfg), eqs, cfg, anest, new Date());
     var existentes = {};
@@ -607,7 +644,7 @@ function sincronizar() {
         casosNuevos.push({
           Caso_ID: id, Evento_ID: c.eventoId, VPA_Evento_ID: c.vpaEventoId,
           Fecha_Cirugia: Utilities.formatDate(c.fecha, TZ, 'yyyy-MM-dd HH:mm'), Paciente: c.paciente, COT: c.cot,
-          Sede: c.sede, Tipo_Anestesia: c.anestesia, Texto_Agenda: c.texto, Origen: c.origen,
+          Sede: c.sede, Pagador: c.pagador, Tipo_Anestesia: c.anestesia, Texto_Agenda: c.texto, Origen: c.origen,
           Anestesiologo_Email: c.anestesiologo, Estado: c.estado, VPA_Agenda: c.vpaAgenda,
           VPA_Cobra: vpaCobra ? 'Sí' : 'No', Medicos_Externos: 0, Reintervencion: 'No',
           Base_Concepto: r.baseConcepto, Base_Monto: r.baseMonto, Adicionales_N: r.adicionalesN,
@@ -618,6 +655,9 @@ function sincronizar() {
         nuevos++;
       } else if (['Programado', 'Por_confirmar'].indexOf(ex.Estado) >= 0) {
         var cambios = { VPA_Agenda: c.vpaAgenda, VPA_Evento_ID: c.vpaEventoId, Actualizado_En: ahora_() };
+        if (c.sede && String(c.sede) !== String(ex.Sede)) cambios.Sede = c.sede;
+        // El pagador sigue a la sede mientras nadie lo haya fijado a mano.
+        if (c.pagador && (!ex.Pagador || (cambios.Sede && String(ex.Pagador) === String(pagadorDeSede(ex.Sede, cfg._pagadores))))) cambios.Pagador = c.pagador;
         if (!ex.Anestesiologo_Email && c.anestesiologo) cambios.Anestesiologo_Email = c.anestesiologo;
         if (c.estado === 'Excluido') { cambios.Estado = 'Excluido'; cambios.Motivo = c.motivo; }
         else if (ex.Estado === 'Programado' && c.estado === 'Por_confirmar') cambios.Estado = 'Por_confirmar';
@@ -714,12 +754,24 @@ function autenticar_(idToken) {
       nombre = u.Nombre || nombre;
     }
   });
-  if (roles.indexOf('admin') >= 0) roles.push('aprobador', 'pagador');
+  var paga = [];
+  if (roles.indexOf('admin') >= 0) { roles.push('aprobador', 'pagador'); paga = ['*']; }
+  else leer_('Pagadores').forEach(function (p) {
+    if (p.Activo === 'No') return;
+    var lista = String(p.Pagan || '').toLowerCase().split(/[,;\s]+/);
+    if (lista.indexOf(email) >= 0) paga.push(p.Pagador_ID);
+  });
+  if (paga.length && roles.indexOf('pagador') < 0) roles.push('pagador');
+  if (!paga.length) roles = roles.filter(function (r) { return r !== 'pagador'; });
   var a = leer_('Anestesiologos').filter(function (x) { return String(x.Email).toLowerCase() === email && x.Activo !== 'No'; })[0];
   if (a) { roles.push('anestesiologo'); nombre = a.Nombre || nombre; }
   if (!roles.length) throw new Error('Tu cuenta (' + email + ') no tiene acceso. Pide que te den de alta.');
-  return { email: email, nombre: nombre, roles: roles };
+  return { email: email, nombre: nombre, roles: roles, paga: paga };
 }
+
+/** ¿Este usuario registra pagos de ese pagador? */
+function pagaA_(u, pagadorId) { return (u.paga || []).indexOf('*') >= 0 || (u.paga || []).indexOf(pagadorId) >= 0; }
+function pagadoresMapa_() { var m = {}; leer_('Pagadores').forEach(function (p) { m[p.Pagador_ID] = p; }); return m; }
 
 function exigir_(u, rol) { if (u.roles.indexOf(rol) < 0) throw new Error('Sin permiso para esta acción'); }
 function tiene_(u, rol) { return u.roles.indexOf(rol) >= 0; }
@@ -764,7 +816,8 @@ function obtenerCaso_(id) {
 }
 
 function puedeVer_(u, c) {
-  if (tiene_(u, 'aprobador') || tiene_(u, 'pagador')) return true;
+  if (tiene_(u, 'aprobador')) return true;
+  if (tiene_(u, 'pagador') && pagaA_(u, c.Pagador)) return true;
   return tiene_(u, 'anestesiologo') && (String(c.Anestesiologo_Email).toLowerCase() === u.email || !c.Anestesiologo_Email);
 }
 
@@ -778,14 +831,15 @@ function editablePorAprob_(u, c) {
 
 var ACCIONES = {
   sesion: function (u) {
-    return { email: u.email, nombre: u.nombre, roles: u.roles, ultimaSinc: PROP.getProperty('ULTIMA_SINC') || '', version: VERSION };
+    return { email: u.email, nombre: u.nombre, roles: u.roles, paga: u.paga, ultimaSinc: PROP.getProperty('ULTIMA_SINC') || '', version: VERSION };
   },
 
   catalogo: function (u) {
     var tab = tabulador_();
     var out = Object.keys(tab).map(function (k) { return { id: k, concepto: tab[k].concepto, monto: tab[k].monto, tipo: tab[k].tipo, categoria: tab[k].categoria, deHoja: tab[k].deHoja }; });
     var anest = tiene_(u, 'aprobador') ? leer_('Anestesiologos').filter(function (a) { return a.Activo !== 'No'; }).map(function (a) { return { email: a.Email, nombre: a.Nombre }; }) : [];
-    return { tabulador: out, anestesiologos: anest };
+    var pags = leer_('Pagadores').filter(function (p) { return p.Activo !== 'No'; }).map(function (p) { return { id: p.Pagador_ID, nombre: p.Nombre, razon: p.Razon_Social, rfc: p.RFC }; });
+    return { tabulador: out, anestesiologos: anest, pagadores: pags };
   },
 
   casos: function (u, d) {
@@ -865,6 +919,11 @@ var ACCIONES = {
     }
     if (d.reintervencion !== undefined) { cambios.Reintervencion = d.reintervencion ? 'Sí' : 'No'; cambios.Reintervencion_Ref = d.reintervencionRef || ''; }
     if (d.anestesiologo !== undefined) { exigir_(u, 'aprobador'); cambios.Anestesiologo_Email = d.anestesiologo; }
+    if (d.pagador !== undefined) {
+      exigir_(u, 'aprobador');
+      if (d.pagador && !pagadoresMapa_()[d.pagador]) throw new Error('Pagador inválido');
+      cambios.Pagador = d.pagador;
+    }
     actualizar_('Casos', c._fila, cambios);
     recalcular_(c.Caso_ID);
     bitacora_(u.email, 'marcar', c.Caso_ID, d);
@@ -885,6 +944,7 @@ var ACCIONES = {
     var c = obtenerCaso_(d.id);
     if (['Por_aprobar', 'Por_confirmar'].indexOf(c.Estado) < 0) throw new Error('Este caso no está pendiente de aprobación');
     if (!c.Anestesiologo_Email) throw new Error('Asigna al anestesiólogo antes de aprobar');
+    if (!c.Pagador) throw new Error('Elige quién paga este caso (Zorvix o Renasté) antes de aprobar');
     if (Number(c.Sin_Mapear) > 0) throw new Error('Clasifica los procedimientos sin mapear antes de aprobar');
     if (!(Number(c.Total) > 0)) throw new Error('El caso tiene total en cero');
     recalcular_(c.Caso_ID);
@@ -938,13 +998,19 @@ var ACCIONES = {
       if (String(c.Anestesiologo_Email).toLowerCase() !== u.email) throw new Error('El caso ' + c.Caso_ID + ' no es tuyo');
       if (c.Estado !== 'Aprobado') throw new Error('El caso ' + c.Caso_ID + ' no está aprobado');
     });
+    var pagId = casos[0].Pagador;
+    if (casos.some(function (c) { return c.Pagador !== pagId; })) throw new Error('Una factura sólo puede llevar casos de un mismo pagador: separa Zorvix y Renasté');
+    var pag = pagadoresMapa_()[pagId];
+    if (!pag) throw new Error('El caso ' + casos[0].Caso_ID + ' no tiene pagador asignado; avisa al Dr. Soto');
+    var rfcRec = String(pag.RFC || '').trim().toUpperCase();
+    if (!rfcRec) throw new Error('Todavía no está registrado el RFC de ' + pag.Nombre + '; avisa al Dr. Soto');
     var suma = casos.reduce(function (s, c) { return s + Number(c.Total); }, 0);
     var xml = Utilities.newBlob(Utilities.base64Decode(d.xml)).getDataAsString('UTF-8');
     var f = leerCFDI(xml);
     var errores = [];
     if (!f.uuid) errores.push('El XML no trae timbre fiscal (UUID)');
     if (f.tipo && f.tipo !== 'I') errores.push('El CFDI no es de ingreso (tipo ' + f.tipo + ')');
-    if (cfg.RFC_RECEPTOR && f.rfcReceptor !== cfg.RFC_RECEPTOR.toUpperCase()) errores.push('La factura está a nombre del RFC ' + f.rfcReceptor + ', debe ser ' + cfg.RFC_RECEPTOR.toUpperCase());
+    if (f.rfcReceptor !== rfcRec) errores.push('La factura está a nombre del RFC ' + f.rfcReceptor + '; para estos casos debe ser ' + rfcRec + ' (' + (pag.Razon_Social || pag.Nombre) + ')');
     var a = leer_('Anestesiologos').filter(function (x) { return String(x.Email).toLowerCase() === u.email; })[0];
     if (a && a.RFC && f.rfcEmisor !== String(a.RFC).toUpperCase()) errores.push('El emisor ' + f.rfcEmisor + ' no coincide con tu RFC registrado');
     var tol = Number(cfg.TOLERANCIA_PESOS || 1);
@@ -961,7 +1027,7 @@ var ACCIONES = {
     anexar_('Solicitudes', {
       Solicitud_ID: solId, Anestesiologo_Email: u.email, Casos: ids.join(','), Total_Casos: suma, UUID: f.uuid,
       RFC_Emisor: f.rfcEmisor, RFC_Receptor: f.rfcReceptor, Total_CFDI: Number(f.total), Fecha_CFDI: f.fecha,
-      Estado_SAT: sat, XML_ID: xmlFile.getId(), PDF_ID: pdfId, Estado: 'Por_pagar', Creado_En: ahora_()
+      Estado_SAT: sat, XML_ID: xmlFile.getId(), PDF_ID: pdfId, Estado: 'Por_pagar', Creado_En: ahora_(), Pagador: pagId
     });
     casos.forEach(function (c) { actualizar_('Casos', c._fila, { Estado: 'En_cobro', Solicitud_ID: solId, Actualizado_En: ahora_() }); });
     bitacora_(u.email, 'crearSolicitud', solId, { casos: ids, total: suma, uuid: f.uuid, sat: sat });
@@ -970,18 +1036,22 @@ var ACCIONES = {
 
   solicitudes: function (u, d) {
     var todas = leer_('Solicitudes');
-    if (!tiene_(u, 'pagador') && !tiene_(u, 'aprobador')) todas = todas.filter(function (s) { return String(s.Anestesiologo_Email).toLowerCase() === u.email; });
+    if (!tiene_(u, 'aprobador')) todas = todas.filter(function (s) { return String(s.Anestesiologo_Email).toLowerCase() === u.email || (tiene_(u, 'pagador') && pagaA_(u, s.Pagador)); });
+    var pags = pagadoresMapa_();
     if (d.estado) todas = todas.filter(function (s) { return s.Estado === d.estado; });
     var anest = {};
     leer_('Anestesiologos').forEach(function (a) { anest[String(a.Email).toLowerCase()] = a; });
-    var verBanco = tiene_(u, 'pagador');
+    var verBanco = function (s) { return tiene_(u, 'pagador') && pagaA_(u, s.Pagador); };
     todas = todas.map(function (s) { var o = limpio_(s); o._orig = s; return o; });
     todas.sort(function (a, b) { return String(b.Creado_En).localeCompare(String(a.Creado_En)); });
     return todas.map(function (o) {
       var s = o._orig; delete o._orig;
       var a = anest[String(s.Anestesiologo_Email).toLowerCase()] || {};
       o.Anestesiologo = a.Nombre || s.Anestesiologo_Email;
-      if (verBanco) { o.Banco = a.Banco || ''; o.CLABE = a.CLABE || ''; }
+      var pg = pags[s.Pagador] || {};
+      o.Pagador_Nombre = pg.Nombre || (s.Pagador || '—');
+      o.Puedo_Pagar = verBanco(s);
+      if (verBanco(s)) { o.Banco = a.Banco || ''; o.CLABE = a.CLABE || ''; }
       o.XML_URL = s.XML_ID ? 'https://drive.google.com/file/d/' + s.XML_ID + '/view' : '';
       o.PDF_URL = s.PDF_ID ? 'https://drive.google.com/file/d/' + s.PDF_ID + '/view' : '';
       o.Comprobante_URL = s.Comprobante_ID ? 'https://drive.google.com/file/d/' + s.Comprobante_ID + '/view' : '';
@@ -994,6 +1064,7 @@ var ACCIONES = {
     var s = leer_('Solicitudes').filter(function (x) { return x.Solicitud_ID === d.id; })[0];
     if (!s) throw new Error('Solicitud no encontrada');
     if (s.Estado !== 'Por_pagar') throw new Error('La solicitud no está por pagar');
+    if (!pagaA_(u, s.Pagador)) throw new Error('Esta factura la paga otra razón social');
     if (!d.comprobante) throw new Error('Sube el comprobante de la transferencia');
     var cfg = config_();
     var ext = /pdf/i.test(d.tipo || '') ? 'pdf' : (/png/i.test(d.tipo || '') ? 'png' : 'jpg');
@@ -1009,6 +1080,7 @@ var ACCIONES = {
     exigir_(u, 'pagador');
     var s = leer_('Solicitudes').filter(function (x) { return x.Solicitud_ID === d.id; })[0];
     if (!s || s.Estado !== 'Por_pagar') throw new Error('La solicitud no está por pagar');
+    if (!pagaA_(u, s.Pagador)) throw new Error('Esta factura la paga otra razón social');
     if (!d.motivo) throw new Error('Escribe el motivo');
     actualizar_('Solicitudes', s._fila, { Estado: 'Rechazada', Motivo: d.motivo });
     var ids = String(s.Casos).split(',');
@@ -1019,13 +1091,19 @@ var ACCIONES = {
 
   tablero: function (u) {
     var casos = leer_('Casos');
-    if (!tiene_(u, 'aprobador') && !tiene_(u, 'pagador')) casos = casos.filter(function (c) { return String(c.Anestesiologo_Email).toLowerCase() === u.email; });
+    if (!tiene_(u, 'aprobador')) casos = casos.filter(function (c) { return String(c.Anestesiologo_Email).toLowerCase() === u.email || (tiene_(u, 'pagador') && pagaA_(u, c.Pagador)); });
+    var pags = pagadoresMapa_();
+    var porPagador = {};
     var anest = {};
     leer_('Anestesiologos').forEach(function (a) { anest[String(a.Email).toLowerCase()] = a.Nombre; });
     var porEstado = {}, porMes = {}, porAnest = {};
     casos.forEach(function (c) {
       if (c.Estado === 'Excluido') return;
       var t = Number(c.Total) || 0;
+      var pn = (pags[c.Pagador] || {}).Nombre || 'Sin definir';
+      porPagador[pn] = porPagador[pn] || { pendiente: 0, pagado: 0 };
+      if (c.Estado === 'Pagado') porPagador[pn].pagado += t;
+      else if (['Por_confirmar', 'Por_aprobar', 'Aprobado', 'En_cobro'].indexOf(c.Estado) >= 0) porPagador[pn].pendiente += t;
       porEstado[c.Estado] = porEstado[c.Estado] || { n: 0, total: 0 };
       porEstado[c.Estado].n++; porEstado[c.Estado].total += t;
       var mes = String(c.Fecha_Cirugia instanceof Date ? Utilities.formatDate(c.Fecha_Cirugia, TZ, 'yyyy-MM') : c.Fecha_Cirugia).slice(0, 7);
@@ -1039,7 +1117,7 @@ var ACCIONES = {
         porAnest[nom].pendiente += t;
       }
     });
-    return { porEstado: porEstado, porMes: porMes, porAnest: porAnest, ultimaSinc: PROP.getProperty('ULTIMA_SINC') || '' };
+    return { porEstado: porEstado, porMes: porMes, porAnest: porAnest, porPagador: porPagador, ultimaSinc: PROP.getProperty('ULTIMA_SINC') || '' };
   },
 
   sincronizarAhora: function (u) {
@@ -1084,5 +1162,5 @@ function consultarSAT_(f) {
 
 /* ===================== Para pruebas en node ===================== */
 if (typeof module !== 'undefined') {
-  module.exports = { norm: norm, parsearEvento: parsearEvento, planearSincronizacion: planearSincronizacion, calcular: calcular, leerCFDI: leerCFDI, buscarEnTextoLibre: buscarEnTextoLibre, TABULADOR_SEMILLA: TABULADOR_SEMILLA, EQUIVALENCIAS_SEMILLA: EQUIVALENCIAS_SEMILLA };
+  module.exports = { pagadorDeSede: pagadorDeSede, PAGADORES_SEMILLA: PAGADORES_SEMILLA, norm: norm, parsearEvento: parsearEvento, planearSincronizacion: planearSincronizacion, calcular: calcular, leerCFDI: leerCFDI, buscarEnTextoLibre: buscarEnTextoLibre, TABULADOR_SEMILLA: TABULADOR_SEMILLA, EQUIVALENCIAS_SEMILLA: EQUIVALENCIAS_SEMILLA };
 }

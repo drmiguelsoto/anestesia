@@ -406,7 +406,8 @@ function actualizar_(nombre, fila, cambios) {
 function config_() {
   var c = {};
   var filas = leer_('Config');
-  filas.forEach(function (r) { c[r.Clave] = String(r.Valor).trim(); });
+  // Sheets convierte "2026-11-06" en fecha: se regresa a texto yyyy-MM-dd para que las comparaciones funcionen.
+  filas.forEach(function (r) { c[r.Clave] = r.Valor instanceof Date ? Utilities.formatDate(r.Valor, TZ, 'yyyy-MM-dd') : String(r.Valor).trim(); });
   // Claves nuevas de versiones posteriores: se agregan solas con su valor por omisión.
   CONFIG_SEMILLA.forEach(function (k) {
     if (!(k[0] in c)) { anexar_('Config', { Clave: k[0], Valor: k[1], Descripcion: k[2] }); c[k[0]] = k[1]; }
@@ -533,6 +534,21 @@ function bootstrap() {
   return msg;
 }
 
+/** Regresa a su estado los casos que se excluyeron por error como "anteriores al arranque" siendo posteriores. */
+function repararExcluidosPorFecha() {
+  var cfg = config_();
+  var ahora = new Date(), n = 0;
+  leer_('Casos').forEach(function (c) {
+    var f = String(c.Fecha_Cirugia instanceof Date ? Utilities.formatDate(c.Fecha_Cirugia, TZ, 'yyyy-MM-dd HH:mm') : c.Fecha_Cirugia);
+    if (c.Estado === 'Excluido' && /Anterior al arranque/.test(c.Motivo) && f.slice(0, 10) >= cfg.FECHA_INICIO) {
+      var fecha = new Date(f.replace(' ', 'T') + ':00-06:00');
+      actualizar_('Casos', c._fila, { Estado: fecha > ahora ? 'Programado' : 'Por_confirmar', Motivo: '', Actualizado_En: ahora_() });
+      n++;
+    }
+  });
+  return 'Reparados: ' + n;
+}
+
 function instalarDisparador() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'sincronizar') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('sincronizar').timeBased().everyHours(1).create();
@@ -621,7 +637,7 @@ function sincronizar() {
     if (cfg.FECHA_INICIO) {
       Object.keys(existentes).forEach(function (k) {
         var ex = existentes[k];
-        if (String(ex.Fecha_Cirugia instanceof Date ? Utilities.formatDate(ex.Fecha_Cirugia, TZ, 'yyyy-MM-dd') : ex.Fecha_Cirugia).slice(0, 10) < cfg.FECHA_INICIO &&
+        if (/^\d{4}-\d{2}-\d{2}$/.test(cfg.FECHA_INICIO) && String(ex.Fecha_Cirugia instanceof Date ? Utilities.formatDate(ex.Fecha_Cirugia, TZ, 'yyyy-MM-dd') : ex.Fecha_Cirugia).slice(0, 10) < cfg.FECHA_INICIO &&
             ['Programado', 'Por_confirmar'].indexOf(ex.Estado) >= 0) {
           actualizar_('Casos', ex._fila, { Estado: 'Excluido', Motivo: 'Anterior al arranque de la app (' + cfg.FECHA_INICIO + ')', Actualizado_En: ahora_() });
           ex.Estado = 'Excluido';

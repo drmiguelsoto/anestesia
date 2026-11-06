@@ -489,6 +489,8 @@ function vistaCobrar() {
   const receptor = p ? `<div class="desglose" style="background:#fff">
       <div><span>Razón social</span><span>${esc(p.razon || 'Pendiente: pídela al Dr. Soto')}</span></div>
       <div><span>RFC</span><span>${esc(p.rfc || 'Pendiente: pídelo al Dr. Soto')}</span></div>
+      ${p.regimen ? `<div><span>Régimen fiscal</span><span>${esc(p.regimen)}</span></div>` : ''}
+      ${p.cp ? `<div><span>C.P. fiscal</span><span>${esc(p.cp)}</span></div>` : ''}
       <div class="tot"><span>Total a facturar</span><span>${mx(suma)}</span></div></div>`
     : `<div class="desglose" style="background:#fff"><div class="tot"><span>Total a facturar</span><span>${mx(0)}</span></div></div>`;
   const bloque = id => `<div style="margin-bottom:14px"><div class="eyebrow" style="margin-bottom:6px">Paga: ${esc(nombrePag(id))}</div>

@@ -38,7 +38,7 @@ var ESQUEMA = {
   Equivalencias: ['Nombre_Agenda', 'Clave_Normal', 'Concepto_ID', 'Notas', 'Veces_Visto', 'Ultima_Vez'],
   Anestesiologos: ['Email', 'Nombre', 'Nombre_Agenda', 'RFC', 'Banco', 'CLABE', 'Activo'],
   Usuarios: ['Email', 'Nombre', 'Rol', 'Activo'],
-  Pagadores: ['Pagador_ID', 'Nombre', 'Razon_Social', 'RFC', 'Patron_Sede', 'Pagan', 'Activo'],
+  Pagadores: ['Pagador_ID', 'Nombre', 'Razon_Social', 'RFC', 'Patron_Sede', 'Pagan', 'Activo', 'Regimen_Fiscal', 'CP_Fiscal'],
   Casos: ['Caso_ID', 'Evento_ID', 'VPA_Evento_ID', 'Fecha_Cirugia', 'Paciente', 'COT', 'Sede',
     'Tipo_Anestesia', 'Texto_Agenda', 'Origen', 'Anestesiologo_Email', 'Estado',
     'VPA_Agenda', 'VPA_Cobra', 'Medicos_Externos', 'Reintervencion', 'Reintervencion_Ref',
@@ -184,7 +184,7 @@ var EQUIVALENCIAS_SEMILLA = [
 // Pagan = correos (separados por coma) de quien registra los pagos de ese pagador; el admin paga todos.
 var PAGADORES_SEMILLA = [
   ['PF', 'Zorvix · Miguel Soto, persona física', 'MIGUEL ANGEL SOTO MIRANDA', 'SOMM790130NHA', 'zorvix', '', 'Sí'],
-  ['RENASTE', 'Renasté · persona moral', '', '', 'renaste', '', 'Sí']
+  ['RENASTE', 'Renasté · persona moral', 'CLINICAS RENASTERE', 'CRE220905PV8', 'renaste', '', 'Sí', '601 · General de Ley Personas Morales', '04460']
 ];
 
 /** Pagador que corresponde a una sede ('' si no hay sede o ninguna regla aplica). */
@@ -512,7 +512,7 @@ function bootstrap() {
   });
   anexarVarios_('Equivalencias', eqs);
   if (!leer_('Pagadores').length) anexarVarios_('Pagadores', PAGADORES_SEMILLA.map(function (p) {
-    return { Pagador_ID: p[0], Nombre: p[1], Razon_Social: p[2], RFC: p[3], Patron_Sede: p[4], Pagan: p[5], Activo: p[6] };
+    return { Pagador_ID: p[0], Nombre: p[1], Razon_Social: p[2], RFC: p[3], Patron_Sede: p[4], Pagan: p[5], Activo: p[6], Regimen_Fiscal: p[7] || '', CP_Fiscal: p[8] || '' };
   }));
   // Casos abiertos que aún no tienen pagador: se asigna por su sede.
   var pagsB = leer_('Pagadores');
@@ -532,6 +532,23 @@ function bootstrap() {
   var msg = 'Listo: ' + ss.getUrl() + (faltan.length ? ' · SIN MONTO EN LA HOJA: ' + faltan.join(', ') : ' · tabulador completo');
   Logger.log(msg);
   return msg;
+}
+
+/** Completa en la hoja Pagadores los datos fiscales de la semilla que estén vacíos (no pisa lo que ya se capturó). */
+function completarPagadores() {
+  var n = 0;
+  var hoja = leer_('Pagadores');
+  PAGADORES_SEMILLA.forEach(function (p) {
+    var f = hoja.filter(function (x) { return x.Pagador_ID === p[0]; })[0];
+    if (!f) return;
+    var c = {};
+    if (!f.Razon_Social && p[2]) c.Razon_Social = p[2];
+    if (!f.RFC && p[3]) c.RFC = p[3];
+    if (!f.Regimen_Fiscal && p[7]) c.Regimen_Fiscal = p[7];
+    if (!f.CP_Fiscal && p[8]) c.CP_Fiscal = "'" + p[8];
+    if (Object.keys(c).length) { actualizar_('Pagadores', f._fila, c); n++; }
+  });
+  return 'Pagadores completados: ' + n;
 }
 
 /** Regresa a su estado los casos que se excluyeron por error como "anteriores al arranque" siendo posteriores. */
@@ -854,7 +871,7 @@ var ACCIONES = {
     var tab = tabulador_();
     var out = Object.keys(tab).map(function (k) { return { id: k, concepto: tab[k].concepto, monto: tab[k].monto, tipo: tab[k].tipo, categoria: tab[k].categoria, deHoja: tab[k].deHoja }; });
     var anest = tiene_(u, 'aprobador') ? leer_('Anestesiologos').filter(function (a) { return a.Activo !== 'No'; }).map(function (a) { return { email: a.Email, nombre: a.Nombre }; }) : [];
-    var pags = leer_('Pagadores').filter(function (p) { return p.Activo !== 'No'; }).map(function (p) { return { id: p.Pagador_ID, nombre: p.Nombre, razon: p.Razon_Social, rfc: p.RFC }; });
+    var pags = leer_('Pagadores').filter(function (p) { return p.Activo !== 'No'; }).map(function (p) { return { id: p.Pagador_ID, nombre: p.Nombre, razon: p.Razon_Social, rfc: p.RFC, regimen: p.Regimen_Fiscal || '', cp: p.CP_Fiscal ? String(p.CP_Fiscal) : '' }; });
     return { tabulador: out, anestesiologos: anest, pagadores: pags };
   },
 
